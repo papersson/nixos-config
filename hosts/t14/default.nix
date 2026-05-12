@@ -70,6 +70,12 @@
 
   services.openssh.enable = true;
 
+  # GNOME 49 ships GNOME Web (Epiphany) as the default browser. Its
+  # WebKitGTK fingerprint is uncommon enough that Cloudflare's bot
+  # detection routinely 403s sites fronted by it (claude.ai included).
+  # The Firefox module wires MIME defaults and desktop integration.
+  programs.firefox.enable = true;
+
   # Pin stateful-option semantics to the release this host was first
   # installed under. Do not change after install — see `man configuration.nix`.
   system.stateVersion = "25.11";
