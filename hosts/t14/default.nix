@@ -1,7 +1,10 @@
 { config, pkgs, ... }:
 
 {
-  imports = [ ./hardware-configuration.nix ];
+  imports = [
+    ./hardware-configuration.nix
+    ../../modules/nixos/thinkpad-t14-gen4.nix
+  ];
 
   # Bootloader. canTouchEfiVariables lets the installer write to NVRAM so
   # the firmware can find the bootloader on next boot.
