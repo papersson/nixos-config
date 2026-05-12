@@ -40,6 +40,7 @@
   # into home-manager later; this list stays small and system-wide.
   environment.systemPackages = with pkgs; [
     git
+    gh
     vim
     curl
     wget
