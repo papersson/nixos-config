@@ -11,17 +11,17 @@
   # Latest mainline kernel — better hardware support on recent ThinkPads.
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  networking.hostName = "laptop";
+  networking.hostName = "t14";
   networking.networkmanager.enable = true;
 
   time.timeZone = "Europe/Stockholm";
   i18n.defaultLocale = "en_US.UTF-8";
   console.keyMap = "us";
 
-  users.users.persson = {
+  users.users.patrikpersson = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" ];
-    # Set with `passwd persson` immediately after first boot.
+    # Set with `passwd patrikpersson` immediately after first boot.
     initialPassword = "changeme";
   };
 
