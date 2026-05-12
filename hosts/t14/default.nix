@@ -8,8 +8,13 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # Latest mainline kernel — better hardware support on recent ThinkPads.
+  # Latest mainline kernel — better hardware support on recent ThinkPads
+  # (AX211 Wi-Fi firmware, Thunderbolt hotplug, libfprint protocol fixes).
   boot.kernelPackages = pkgs.linuxPackages_latest;
+
+  # Redistributable firmware blobs (Intel AX211 Wi-Fi/BT, SOF audio DSP).
+  hardware.enableRedistributableFirmware = true;
+  hardware.cpu.intel.updateMicrocode = true;
 
   networking.hostName = "t14";
   networking.networkmanager.enable = true;
@@ -18,12 +23,28 @@
   i18n.defaultLocale = "en_US.UTF-8";
   console.keyMap = "us";
 
+  # Enable flakes + the new nix CLI globally so plain `nix build`,
+  # `nix shell`, `nix flake` work without per-invocation flags.
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
   users.users.patrikpersson = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" ];
-    # Set with `passwd patrikpersson` immediately after first boot.
-    initialPassword = "changeme";
+    extraGroups = [ "wheel" "networkmanager" "video" "audio" ];
   };
+
+  # Base CLI tooling needed on first login. Anything user-scoped will move
+  # into home-manager later; this list stays small and system-wide.
+  environment.systemPackages = with pkgs; [
+    git
+    vim
+    curl
+    wget
+    htop
+    tree
+    file
+    pciutils
+    usbutils
+  ];
 
   services.openssh.enable = true;
 
