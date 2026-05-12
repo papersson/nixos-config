@@ -41,10 +41,13 @@
   # `synaptics` driver. Do NOT enable services.fprintd.tod — that path is
   # for older Validity 138a:00xx sensors and will break enrollment.
   services.fprintd.enable = true;
+  # mkForce — nixos-hardware (or another module in the stack) sets these
+  # to false by default; we override to enable fprintd PAM integration
+  # for tty login, sudo, and the GDM password prompt.
   security.pam.services = {
-    login.fprintAuth = true;
-    sudo.fprintAuth = true;
-    gdm-password.fprintAuth = true;
+    login.fprintAuth = lib.mkForce true;
+    sudo.fprintAuth = lib.mkForce true;
+    gdm-password.fprintAuth = lib.mkForce true;
   };
 
   # ---- Wi-Fi / Bluetooth ------------------------------------------------
