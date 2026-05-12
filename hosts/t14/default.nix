@@ -31,6 +31,11 @@
   # `nix shell`, `nix flake` work without per-invocation flags.
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
+  # Allow installing packages with non-free licenses (currently: claude-code).
+  # Tighten later with `nixpkgs.config.allowUnfreePredicate` if you want an
+  # explicit allowlist of which unfree packages are permitted.
+  nixpkgs.config.allowUnfree = true;
+
   users.users.patrikpersson = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "video" "audio" ];
@@ -39,16 +44,28 @@
   # Base CLI tooling needed on first login. Anything user-scoped will move
   # into home-manager later; this list stays small and system-wide.
   environment.systemPackages = with pkgs; [
+    # Source control + GitHub plumbing
     git
     gh
+
+    # Editors / file inspection
     vim
+    tree
+    file
+
+    # Networking / monitoring
     curl
     wget
     htop
-    tree
-    file
+
+    # Hardware introspection
     pciutils
     usbutils
+
+    # Agentic CLI assistant. Unfree (Anthropic Commercial Terms);
+    # gated by nixpkgs.config.allowUnfree above. Auth via `claude auth`
+    # on first run — uses an OAuth browser flow.
+    claude-code
   ];
 
   services.openssh.enable = true;
