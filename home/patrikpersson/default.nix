@@ -215,5 +215,6 @@
     jq
     nerd-fonts.jetbrains-mono
     sops
+    neovim
   ];
 }
