@@ -7,7 +7,7 @@ This is the flake configuring the `t14` host. Single user (`patrikpersson`), sin
 - `flake.nix` — inputs (nixpkgs 25.11, nixpkgs-unstable, home-manager release-25.11, nixos-hardware, sops-nix) and the `nixosConfigurations.t14` output
 - `flake.lock` — pinned input revisions; commit alongside `flake.nix`
 - `hosts/t14/` — host config + auto-generated `hardware-configuration.nix`
-- `modules/nixos/` — reusable system modules (T14 hardware tunables, GNOME desktop, declarative Wi-Fi via sops)
+- `modules/nixos/` — reusable system modules (T14 hardware tunables, Hyprland desktop + greetd, declarative Wi-Fi via sops)
 - `home/patrikpersson/` — home-manager user config and bundled assets (`claude/`, `starship.toml`)
 - `.sops.yaml` — age recipient list (user + host) and creation rules
 - `secrets/` — encrypted YAML (`t14.yaml` holds Wi-Fi PSK + user SSH key)

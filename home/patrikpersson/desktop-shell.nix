@@ -63,6 +63,7 @@ in
         "pulseaudio"
         "network"
         "battery"
+        "custom/power"
       ];
 
       "hyprland/workspaces" = {
@@ -114,6 +115,15 @@ in
       tray = {
         spacing = 10;
       };
+
+      # Power button → opens wlogout, a full-screen overlay with
+      # lock / logout / suspend / reboot / shutdown buttons. The
+      # nerd-font glyph below is the standard power icon.
+      "custom/power" = {
+        format = "";
+        tooltip = false;
+        on-click = "wlogout";
+      };
     };
 
     # CSS lives inline so the colour palette stays in one file with the
@@ -156,8 +166,16 @@ in
         font-weight: bold;
       }
 
-      #battery, #network, #pulseaudio, #tray {
+      #battery, #network, #pulseaudio, #tray, #custom-power {
         padding: 0 10px;
+      }
+
+      #custom-power {
+        color: #bf616a;
+        font-size: 15px;
+      }
+      #custom-power:hover {
+        background: rgba(191, 97, 106, 0.2);
       }
 
       #battery.warning  { color: #ebcb8b; }

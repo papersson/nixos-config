@@ -55,6 +55,10 @@
     wl-clipboard
     polkit_gnome
     pavucontrol
+    # GUI logout/shutdown/reboot/lock overlay. Fired from a waybar
+    # power button (see home/patrikpersson/desktop-shell.nix). Ships
+    # with a sensible default layout at /etc/wlogout/layout.
+    wlogout
   ];
 
   # Font baseline. Required for emoji + CJK rendering in any GTK/Qt

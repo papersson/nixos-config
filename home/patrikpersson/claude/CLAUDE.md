@@ -4,7 +4,7 @@
 
 - ThinkPad T14 Gen 4 Intel, NixOS 25.11 (Xantusia), kernel `pkgs.linuxPackages_latest`
 - User: `patrikpersson`. Shell: `zsh`. Prompt: starship. Jumps: zoxide.
-- Desktop: GNOME 49 on Wayland. Terminal: Ghostty.
+- Desktop: Hyprland on Wayland (greetd + tuigreet as the login manager). Terminal: Ghostty. Status bar: waybar; notifications: mako; wallpaper: hyprpaper.
 - System config: flake at `/etc/nixos`. User-writable for edits; rebuilds need sudo.
 
 ## NixOS rules
