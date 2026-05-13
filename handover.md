@@ -6,7 +6,8 @@ Consumed by the next Claude Code session. Skim §1 + §6 first, then start.
 
 Working install of NixOS 25.11 on a ThinkPad T14 Gen 4 Intel. LUKS2 +
 btrfs subvolumes, GNOME 49 on Wayland under GDM, PipeWire, fprintd
-wired, fwupd, Thunderbolt 4 via boltd, Firefox. Git + gh installed
+wired, fwupd, Thunderbolt 4 via boltd, Firefox. Secure Boot enforced
+via Lanzaboote with self-enrolled keys (anti-evil-maid live). Git + gh installed
 and authed; user pushes directly from the laptop.
 
 **home-manager is now the user-config layer** (wired as a NixOS module).
@@ -257,84 +258,66 @@ Open follow-ups:
   (`gh ssh-key add ~/.ssh/id_ed25519.pub --title t14`). Not required —
   `gh` HTTPS auth still works for push.
 
-### Step 3 — Lanzaboote (Secure Boot with own keys) (pending BIOS time)
+### Step 3 — Lanzaboote (Secure Boot with own keys) ✓ DONE
 
-Anti-evil-maid for a consulting laptop. The intended sequence (do
-*not* compress these — order is load-bearing: keys must exist on
-disk and be enrolled in firmware *before* the bootloader flip, or
-the post-flip boot fails verification).
+Landed across commits `cec7966` (input + `sbctl` only) and `b414980`
+(module import + `mkForce` off systemd-boot + `boot.lanzaboote`
+enable). Firmware now verifies signed UKIs at every boot; `sbctl
+status` reports `Secure Boot: enabled (user)`.
 
-**Sequence — 7 steps, 2 BIOS visits, 2 rebuilds:**
+What surprised this session, capture for next time:
 
-1. **Commit + rebuild #1**: add `lanzaboote` flake input and `sbctl`
-   to `environment.systemPackages`. **Do not** import the lanzaboote
-   module yet. After rebuild, `sbctl` is on `$PATH` but the
-   bootloader is still systemd-boot, unchanged.
+- **Lanzaboote-signed UKIs appear as "orphans" in `sbctl verify`.**
+  Lanzaboote signs the UKIs in `/boot/EFI/Linux/` with the keys at
+  `/var/lib/sbctl/`, but it does **not** register them in sbctl's
+  tracked-files database. So `sbctl verify` lists them as orphans
+  even though firmware accepts them. **Never `rm` an sbctl orphan
+  without first checking what the file actually is** — deleting the
+  UKIs removes the kernel images and the next boot panics with
+  `Io(IoError ... NOT_FOUND)` from lanzaboote's Rust stub. Recovery
+  is USB-chroot + rebuild (see below).
+- **The "is not signed. Replacing it with a signed binary" lines
+  during `nixos-rebuild` are informational, not errors.** Lanzaboote
+  prints them every rebuild as it overwrites the existing
+  `BOOTX64.EFI` / `systemd-bootx64.efi` with freshly-signed copies.
+- **`switch-to-configuration` failing with dbus errors inside
+  `nixos-enter` is harmless.** The bootloader write happens before
+  that step, so as long as you see `Successfully installed
+  Lanzaboote.`, the ESP is correct — dbus only matters when running
+  on a live system.
+- **Setup Mode can already be on at first boot.** On this T14 it was
+  enabled out of the box (PK not present in firmware), so BIOS-visit
+  #1 to "Reset to Setup Mode" was unnecessary; `sbctl enroll-keys
+  --microsoft` succeeded directly. Check `sbctl status` before
+  assuming a BIOS visit is needed.
 
-   ```nix
-   # flake.nix
-   inputs.lanzaboote = {
-     url = "github:nix-community/lanzaboote/v1.0.0";
-     inputs.nixpkgs.follows = "nixpkgs";
-   };
+**USB-recovery recipe** (in case it's needed again — boot NixOS
+minimal ISO, then):
 
-   # hosts/t14/default.nix — environment.systemPackages list
-   pkgs.sbctl
-   ```
+```bash
+sudo -i
+cryptsetup luksOpen /dev/disk/by-uuid/547c5786-0e19-4671-b244-fc949755ebcd cryptroot
+mount -o subvol=@ /dev/mapper/cryptroot /mnt
+mkdir -p /mnt/{nix,home,persist,.snapshots,boot}
+mount -o subvol=@nix       /dev/mapper/cryptroot /mnt/nix
+mount -o subvol=@home      /dev/mapper/cryptroot /mnt/home
+mount -o subvol=@persist   /dev/mapper/cryptroot /mnt/persist
+mount -o subvol=@snapshots /dev/mapper/cryptroot /mnt/.snapshots
+mount /dev/disk/by-uuid/53D7-3F16 /mnt/boot
+rm -rf /mnt/boot/EFI /mnt/boot/loader   # only if ESP is corrupted
+nixos-enter --root /mnt
+# inside the chroot:
+cd /etc/nixos
+nixos-rebuild switch --flake /etc/nixos#t14
+exit
+umount -R /mnt
+reboot
+```
 
-2. **User runs (no Claude involvement)**:
-   ```bash
-   sudo sbctl create-keys     # writes PK/KEK/db keys to /var/lib/sbctl/
-   sudo bootctl status        # sanity: confirm systemd-boot still active
-   ```
-   Keys are inert until enrolled in firmware.
-
-3. **Reboot into BIOS**: Security → Secure Boot → "Reset to Setup
-   Mode" (Lenovo may label this "Clear All Secure Boot Keys").
-   **Leave Secure Boot disabled** for now. Boot back to GNOME.
-
-4. **User runs**:
-   ```bash
-   sudo sbctl enroll-keys --microsoft
-   ```
-   Pushes PK/KEK/db into firmware via efivars. `--microsoft` keeps
-   MS keys alongside ours so `fwupd` capsule updates still verify.
-   Setup Mode allows this write; without it the enroll fails.
-
-5. **Commit + rebuild #2**: import the Lanzaboote module, disable
-   systemd-boot with `mkForce`, enable Lanzaboote. The rebuild signs
-   *all* available generations as UKIs — that's what makes rollback
-   survivable after Secure Boot is enforced.
-
-   ```nix
-   # hosts/t14/default.nix
-   imports = [ inputs.lanzaboote.nixosModules.lanzaboote ];
-   boot.loader.systemd-boot.enable = lib.mkForce false;
-   boot.lanzaboote = {
-     enable = true;
-     pkiBundle = "/var/lib/sbctl";    # default since lanzaboote 0.4.x
-   };
-   ```
-
-6. **Reboot into BIOS**: Security → Secure Boot → **Enable**.
-   Firmware now verifies every UKI on boot against the keys you
-   enrolled in step 4.
-
-7. **Verify** at the DE:
-   ```bash
-   sbctl status               # expect "Secure Boot: enabled (user)"
-   sbctl verify               # all bootloader/UKI files should be signed
-   ```
-
-**Rollback story** if step 6 produces an unbootable state: the boot
-menu lets you pick a prior generation; step 5 signed all of them, so
-they verify. If even that fails: BIOS → disable Secure Boot, drop
-back to a known-good generation, debug.
-
-**Risk window**: between step 3 (Setup Mode, SB off) and step 6 (SB
-back on), the laptop is *less* protected than baseline. Should be
-minutes, not hours — don't start step 3 unless you can complete the
-sequence in one sitting.
+To fall back to plain systemd-boot from the chroot: `git reset --hard
+cec7966` first, then rebuild. The lanzaboote input + `sbctl` are
+already on disk at that revision; only the bootloader flip is
+reverted.
 
 ### Step 4 — `nh` and direnv + nix-direnv ✓ DONE
 
@@ -444,7 +427,6 @@ nh --version && direnv version && sops --version | head -1  # step 2+4 tooling p
 ls -la /run/secrets/wifi/home_env    # sops-decrypted Wi-Fi env file (root-only)
 ```
 
-If all green, start step 3 (Lanzaboote) when BIOS time is available
-— or skip ahead to step 5 (dotfiles integration), which needs no
-physical access. Cite this handover when referencing past decisions;
-don't re-derive them.
+If all green, next up is step 5 (dotfiles integration) — steps 1–4
+are done. Cite this handover when referencing past decisions; don't
+re-derive them.
