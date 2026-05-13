@@ -203,5 +203,6 @@
     eza
     jq
     nerd-fonts.jetbrains-mono
+    sops
   ];
 }
