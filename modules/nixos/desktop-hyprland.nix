@@ -41,21 +41,20 @@
     };
   };
 
-  # Userland Hyprland needs but doesn't install itself. waybar (bar),
-  # wofi (launcher), mako (notifications), swaylock (locker), swayidle
-  # (idle daemon), grim+slurp (region screenshot), wl-clipboard (CLI
-  # clipboard), hyprpaper (wallpaper), polkit_gnome (privilege agent).
+  # Userland Hyprland needs but doesn't install itself. waybar / mako /
+  # hyprpaper are installed and configured per-user via home-manager
+  # (see home/patrikpersson/desktop-shell.nix) — listing them here
+  # would duplicate the closure entry under the system profile.
+  # pavucontrol = GUI volume mixer, fired by waybar's on-click handler.
   environment.systemPackages = with pkgs; [
-    waybar
     wofi
-    mako
     swaylock
     swayidle
     grim
     slurp
     wl-clipboard
-    hyprpaper
     polkit_gnome
+    pavucontrol
   ];
 
   # Font baseline. Required for emoji + CJK rendering in any GTK/Qt
