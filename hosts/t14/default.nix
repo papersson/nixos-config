@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 
 {
   imports = [
@@ -8,10 +8,18 @@
     ../../modules/nixos/wifi.nix
   ];
 
-  # Bootloader. canTouchEfiVariables lets the installer write to NVRAM so
-  # the firmware can find the bootloader on next boot.
-  boot.loader.systemd-boot.enable = true;
+  # Bootloader: Lanzaboote replaces systemd-boot. It signs a Unified Kernel
+  # Image (kernel + initrd + cmdline) with keys held at /var/lib/sbctl so
+  # firmware-level Secure Boot can verify everything we boot. systemd-boot
+  # itself is mkForce'd off because both bootloaders can't coexist; mkForce
+  # is belt-and-braces in case a nixos-hardware module re-enables it later.
+  # canTouchEfiVariables stays — Lanzaboote uses it the same way.
+  boot.loader.systemd-boot.enable = lib.mkForce false;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.lanzaboote = {
+    enable = true;
+    pkiBundle = "/var/lib/sbctl";
+  };
 
   # Latest mainline kernel — better hardware support on recent ThinkPads
   # (AX211 Wi-Fi firmware, Thunderbolt hotplug, libfprint protocol fixes).
