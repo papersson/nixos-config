@@ -46,9 +46,25 @@
 - Bold sparingly, only for real emphasis. Not for decoration.
 - Avoid negative parallelisms — say "X and Y", not "not just X, but Y".
 
+## CLAUDE.md hierarchy
+
+CLAUDE.md files cascade by filesystem location. `~/.claude/CLAUDE.md` (this file) loads in every session; a project's root `CLAUDE.md` loads when cwd is inside that project; a subdirectory's `CLAUDE.md` loads when cwd is under it. Children **supplement**, not replace, parents — everything compounds into the same context.
+
+Use this deliberately. Place each fact at the **narrowest scope where it's still true**:
+
+- Universal preferences, machine-level workflow → global (this file).
+- Repo layout, repo-wide conventions, repo-specific file locations → project root CLAUDE.md.
+- Subsystem-specific rules (a `secrets/CLAUDE.md` warning about encryption discipline, a `modules/CLAUDE.md` codifying module patterns, a `migrations/CLAUDE.md` for schema-change conventions) → subdirectory CLAUDE.md.
+
+Avoid two failure modes:
+- **Duplication**: a fact in a parent is already loaded; restating it in a child creates drift risk when one copy gets updated and the other doesn't.
+- **Scope bleed**: a fact in a child is *not* loaded outside that subtree — cross-cutting rules placed there go silent the moment you `cd` away.
+
+When introducing a new rule, ask: "from which directory will future-me be working when this rule applies?" That directory's CLAUDE.md is where it goes. If a project grows a subsystem with its own non-obvious conventions, that's a signal to create a CLAUDE.md inside it rather than expand the root file.
+
 ## Maintenance
 
-Keep this file current when the environment shifts. Triggers worth an edit: change to shell / prompt / terminal / desktop, new daily-driver tool added (e.g. `nh`, `direnv`, `sops`), change to how rebuilds happen, change to where packages come from. Skip the trivial — single package additions and version bumps stay out and live in commit messages instead. Project-specific facts go in `/etc/nixos/CLAUDE.md`, not here.
+Keep this file current when the environment shifts. Triggers worth an edit: change to shell / prompt / terminal / desktop, new daily-driver tool added (e.g. `nh`, `direnv`, `sops`), change to how rebuilds happen, change to where packages come from. Skip the trivial — single package additions and version bumps stay out and live in commit messages instead. Project-specific facts go in the project's CLAUDE.md, subsystem-specific facts go deeper; see the Hierarchy section above for placement.
 
 ## References
 
