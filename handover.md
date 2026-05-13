@@ -190,35 +190,65 @@ In order. Each is one commit, one rebuild.
 
 Landed in commit `e5135d1`. See §4 for details and gotchas captured.
 
-### Step 2 — sops-nix (NEXT)
+### Step 2 — sops-nix ✓ DONE
 
-Resolves "Wi-Fi PSK and SSH keys are imperative." Both move to
-encrypted YAML decrypted by the host's age key at activation.
+Landed across commits `9b03b7e`, `e332c62`, `2fbffff`, `ca61aac`.
+Wi-Fi PSK + user SSH key now live in `secrets/t14.yaml`, decrypted at
+activation by `/etc/ssh/ssh_host_ed25519_key` as an age recipient.
 
-Design decisions to inherit:
+What changed:
 
-- Recipients in `.sops.yaml`: one user age key (derived from a
-  personal SSH ed25519 via `ssh-to-age`), one host age key (derived
-  from `/etc/ssh/ssh_host_ed25519_key.pub` via `ssh-to-age`).
-- Per-host secrets file: `secrets/t14.yaml`.
-- First secret to migrate: a freshly-generated SSH ed25519 for the
-  user, deployed via `sops.secrets."ssh/id_ed25519_persson".path`
-  → `~/.ssh/id_ed25519` with mode `0600`.
-- Wi-Fi via `networking.networkmanager.ensureProfiles` reading
-  `environmentFiles` from sops-managed paths (the standard sops-nix
-  pattern — works because NM is the only consumer).
+- `flake.nix`: `sops-nix` input (follows nixpkgs), system module via
+  `sops-nix.nixosModules.sops`, HM side via `home-manager.sharedModules`.
+- `.sops.yaml`: two-recipient pattern. User `age1qd…nf76` (derived
+  from `~/.ssh/id_ed25519` via `ssh-to-age`); host `age1w60…hv7sw7z4va`
+  (derived from `/etc/ssh/ssh_host_ed25519_key.pub`). Creation rule
+  pinned to `secrets/t14\.yaml$`.
+- `secrets/t14.yaml`: encrypted entries `wifi/home_env`
+  (`HOME_SSID=Telia-4475ED` + `HOME_PSK=…`) and `ssh/id_ed25519_persson`.
+- `modules/nixos/wifi.nix`: `sops.age.sshKeyPaths` plus a
+  `networking.networkmanager.ensureProfiles.home` profile that
+  references `$HOME_SSID`/`$HOME_PSK` from the decrypted env file.
+  Imperative `Telia-4475ED` connection deleted post-rebuild.
+- `home/patrikpersson/default.nix`: HM-side `sops.age.keyFile` at
+  `~/.config/sops/age/keys.txt`; `ssh/id_ed25519_persson` rendered to
+  `~/.ssh/id_ed25519` (mode 0600, symlinked through
+  `~/.config/sops-nix/secrets/`).
 
-Add to flake inputs:
-`sops-nix.url = "github:Mic92/sops-nix"`, `inputs.nixpkgs.follows
-= "nixpkgs"`. Module: `sops-nix.nixosModules.sops`; for HM use
-`sops-nix.homeManagerModules.sops` from inside the HM block (it's
-declared via `home-manager.sharedModules` at the flake level).
+Gotchas captured this session:
 
-Pitfall to remember: never `builtins.readFile config.sops.secrets.X.path`
-— that lands the decrypted plaintext in `/nix/store`, which is
-world-readable. Always reference paths, never contents.
+- **`sops --filename-override` is an `encrypt` subcommand flag, not a
+  global option.** For "plaintext never lands in the repo" encryption:
+  `cat /tmp/plain | sops encrypt --filename-override secrets/t14.yaml /dev/stdin > secrets/t14.yaml`.
+  Plain file argument without `--filename-override` fails with "no
+  matching creation rules found" because sops searches relative to
+  the file's parent directory.
+- **HM's sops module symlinks**: the user requests `path =
+  "${home}/.ssh/id_ed25519"`, but the actual file lives at
+  `~/.config/sops-nix/secrets/ssh/id_ed25519_persson` with a symlink
+  at the requested path. Backups that follow symlinks see the file;
+  ones that don't, won't.
+- **Bootstrap chicken-and-egg**: the user's age key is derived from
+  `~/.ssh/id_ed25519` via `ssh-to-age`, but `~/.ssh/id_ed25519` is
+  itself the secret being deployed by sops-nix. Resolution: generate
+  the SSH key once imperatively, derive the age key from it, encrypt
+  the SSH key into the YAML, then let sops-nix re-render it at
+  activation. From then on the SSH key is a declarative artefact.
+- **Pitfall still applies**: never `builtins.readFile
+  config.sops.secrets.X.path` — that lands the decrypted plaintext in
+  `/nix/store`, which is world-readable. Always reference paths,
+  never contents.
+- **Host key rotation invalidates secrets**: if
+  `/etc/ssh/ssh_host_ed25519_key` is ever regenerated, run
+  `sops updatekeys secrets/t14.yaml` before the next rebuild or
+  activation fails to decrypt.
 
-### Step 3 — Lanzaboote (Secure Boot with own keys)
+Open follow-ups:
+- Add `~/.ssh/id_ed25519.pub` to GitHub if you want SSH-based git
+  (`gh ssh-key add ~/.ssh/id_ed25519.pub --title t14`). Not required —
+  `gh` HTTPS auth still works for push.
+
+### Step 3 — Lanzaboote (Secure Boot with own keys) (NEXT)
 
 Anti-evil-maid for a consulting laptop. Two phases.
 
@@ -342,5 +372,5 @@ echo $SHELL                    # /run/current-system/sw/bin/zsh — confirms log
 claude --version               # ≥ 2.1.137 confirms pkgs.unstable overlay landed
 ```
 
-If all green, start step 2 (sops-nix). Cite this handover when
+If all green, start step 3 (Lanzaboote). Cite this handover when
 referencing past decisions; don't re-derive them.
