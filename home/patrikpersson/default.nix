@@ -216,5 +216,21 @@
     nerd-fonts.jetbrains-mono
     sops
     neovim
+    # gcc is needed at runtime for nvim-treesitter (compiles parsers
+    # locally) and telescope-fzf-native (builds its C extension via
+    # `make`). Without it, plugin install logs errors but nvim still
+    # works at reduced functionality.
+    gcc
   ];
+
+  # Neovim config lives in-tree (./nvim/), deployed to ~/.config/nvim.
+  # `recursive = true` symlinks file-by-file so subdirectories of the
+  # target can hold lazy.nvim/Mason state without colliding with the
+  # nix-store-managed symlinks. lazy-lock.json is intentionally absent
+  # from ./nvim/ — it's plugin-manager state, not config; lazy.nvim
+  # regenerates it on first install.
+  xdg.configFile."nvim" = {
+    source = ./nvim;
+    recursive = true;
+  };
 }
