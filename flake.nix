@@ -19,6 +19,14 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Secure Boot with our own keys. Step 1 only adds the input so `sbctl`
+    # can land via systemPackages; the module is imported in step 5, after
+    # keys are created and enrolled in firmware.
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote/v1.0.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix, ... }@inputs: {

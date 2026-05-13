@@ -88,6 +88,11 @@
     # Agentic CLI assistant — pulled from unstable for faster updates.
     # Unfree (Anthropic Commercial Terms); gated by allowUnfree above.
     pkgs.unstable.claude-code
+
+    # Secure Boot tooling. Used out-of-band (sbctl create-keys,
+    # sbctl enroll-keys, sbctl status/verify); the lanzaboote module
+    # itself isn't imported until keys are enrolled in firmware.
+    sbctl
   ];
 
   # Keep /etc/nixos writable by the primary user so editing the flake
