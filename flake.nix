@@ -14,9 +14,14 @@
     # SSD, mesa baseline). No T14 Gen 4 Intel profile exists upstream as
     # of 2026-05; we compose from the generic `common-*` modules instead.
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
+
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, ... }@inputs: {
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix, ... }@inputs: {
     nixosConfigurations.t14 = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
@@ -26,11 +31,13 @@
         nixos-hardware.nixosModules.common-pc-ssd
         nixos-hardware.nixosModules.common-cpu-intel
         nixos-hardware.nixosModules.common-gpu-intel
+        sops-nix.nixosModules.sops
         home-manager.nixosModules.home-manager
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "hm-bak";
+          home-manager.sharedModules = [ sops-nix.homeManagerModules.sops ];
           home-manager.users.patrikpersson = import ./home/patrikpersson;
         }
         {
