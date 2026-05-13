@@ -218,21 +218,5 @@
     nerd-fonts.jetbrains-mono
     sops
     tmux
-    # gcc is still here only because the legacy LazyVim deployment
-    # (./nvim/, deployed via xdg.configFile."nvim" below) needs it to
-    # build telescope-fzf-native and compile treesitter parsers. Once
-    # that deployment is removed in the cleanup commit, gcc goes too.
-    gcc
   ];
-
-  # Neovim config lives in-tree (./nvim/), deployed to ~/.config/nvim.
-  # `recursive = true` symlinks file-by-file so subdirectories of the
-  # target can hold lazy.nvim/Mason state without colliding with the
-  # nix-store-managed symlinks. lazy-lock.json is intentionally absent
-  # from ./nvim/ — it's plugin-manager state, not config; lazy.nvim
-  # regenerates it on first install.
-  xdg.configFile."nvim" = {
-    source = ./nvim;
-    recursive = true;
-  };
 }

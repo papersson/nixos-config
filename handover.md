@@ -46,6 +46,7 @@ nixos-config/
 ├── home/
 │   └── patrikpersson/
 │       ├── default.nix             # HM user config: sops (ssh key), ghostty, zsh stack, direnv, claude home.file refs
+│       ├── nvim.nix                # programs.nixvim — declarative Neovim, imported by default.nix
 │       ├── starship.toml           # consumed via builtins.fromTOML + readFile
 │       └── claude/
 │           ├── CLAUDE.md           # deployed to ~/.claude/CLAUDE.md by HM (has the hierarchy convention)
@@ -333,7 +334,50 @@ diff on each `cd`.
 anywhere, so the assertion is moot, but keep that in mind if a
 future tutorial suggests adding it.
 
-### Step 5 — Dotfiles ↔ Nix integration (Option B)
+### Step 5 — Declarative Neovim via nixvim ✓ DONE
+
+Replaced the ad-hoc LazyVim deployment (`home/patrikpersson/nvim/`,
+xdg.configFile symlinked into `~/.config/nvim`) with
+`programs.nixvim`. Plugins come from nixpkgs; LSPs (nil, lua_ls,
+bashls, pyright, rust_analyzer, zls, ts_ls) install declaratively;
+no Mason; no /lib64/ld-linux runtime miss; no on-disk Lua config to
+mutate. Config lives in `home/patrikpersson/nvim.nix`, imported by
+`default.nix`.
+
+Gotchas captured:
+
+- **nixvim's wrapper does NOT pass `-u <init>`** — it sets up
+  packpath/rtp via `--cmd "set packpath^=..."` and relies on
+  home-manager to write its generated `init.lua` to
+  `~/.config/nvim/init.lua`. If anything else (e.g. an existing
+  `xdg.configFile."nvim" = { source = ./nvim; recursive = true; }`)
+  claims that path first, HM doesn't conflict-error — the prior
+  claim just wins, leaving nixvim's plugins on packpath but no
+  config loaded. The planned two-commit split (add nixvim → verify
+  → remove legacy) doesn't work for this reason; collapse the
+  cleanup into the same commit, or remove the prior xdg.configFile
+  claim first as its own commit.
+- **`homeManagerModules` is renamed to `homeModules`** in current
+  nixvim flake outputs. The old name evaluates with a deprecation
+  warning that masks the actual breakage.
+- **`plugins.neo-tree.*` flat top-level options were removed**; the
+  entire neo-tree spec now lives under `.settings.*` with upstream
+  snake_case naming. Same warning shape ("no longer has any effect;
+  please remove it. Use `plugins.X.settings.Y`") applies to other
+  plugins as nixvim 25.11 migrates to typed settings.
+- **`plugins.telescope.extensions.fzf-native.enable = true`**
+  injects all the fzf-native settings (fuzzy, override_*_sorter,
+  case_mode) on its own. Defining them again in
+  `settings.extensions.fzf` causes a "conflicting option types"
+  evaluation error.
+- **Some Lua-list options reject Nix lists.** `plugins.flash.settings.modes.char.keys`
+  is typed as `attrset or rawLua`; pass the list via
+  `keys.__raw = ''{ "f", "F", ... }''`.
+- **Default `grammarPackages`** pulls *every* nvim-treesitter
+  parser into the closure (~250 MB). Curate explicitly to the
+  active language mix.
+
+### Step 6 — Dotfiles ↔ Nix integration (Option B)
 
 Reading: `docs/drafts/config-architecture.md`.
 
@@ -359,7 +403,7 @@ the architecture draft: split current `home/patrikpersson/claude/CLAUDE.md`
 into `base/claude/CLAUDE.md` (universal) + `hosts/t14/claude/CLAUDE.md`
 (NixOS-specific), and concatenate via `builtins.readFile`.
 
-### Step 6 — Multi-tenant isolation
+### Step 7 — Multi-tenant isolation
 
 Deferred. Pull it forward only when a real client engagement has a
 DPA clause that names isolation. Until then, single user, no
