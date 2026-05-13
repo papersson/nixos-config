@@ -248,7 +248,11 @@ Open follow-ups:
   (`gh ssh-key add ~/.ssh/id_ed25519.pub --title t14`). Not required —
   `gh` HTTPS auth still works for push.
 
-### Step 3 — Lanzaboote (Secure Boot with own keys) (NEXT)
+### Step 3 — Lanzaboote (Secure Boot with own keys) (pending BIOS time)
+
+Deferred this session: the user didn't have a window for the BIOS
+dance. Still the right next thing whenever there's 15 quiet minutes
+plus physical access. Sequence remains as below.
 
 Anti-evil-maid for a consulting laptop. Two phases.
 
@@ -280,33 +284,19 @@ Rebuild, reboot, enter BIOS, re-enable Secure Boot. Verify with
 Add to flake inputs: `lanzaboote.url = "github:nix-community/lanzaboote/v1.0.0"`
 with `inputs.nixpkgs.follows = "nixpkgs"`.
 
-### Step 4 — `nh` and direnv + nix-direnv
+### Step 4 — `nh` and direnv + nix-direnv ✓ DONE
 
-QoL, not load-bearing. `nh` is a Rust wrapper that adds closure
-diffs and nix-output-monitor to rebuilds; `nix-direnv` makes
-per-project devShells transparent. Both are uncontroversial.
+Landed in commit `8aa77c9`. `nh os switch` is the new default
+rebuild path; `nh clean` runs periodically and prunes direnv GC
+roots too (`programs.nh.clean.enable = true`, retention
+`--keep-since 7d --keep 5`). `nh.flake` is pointed at `/etc/nixos`
+directly — no symlink-to-home detour. direnv + nix-direnv are
+enabled HM-side with `hide_env_diff` to suppress the noisy export
+diff on each `cd`.
 
-```nix
-programs.nh = {
-  enable = true;
-  flake = "/home/patrikpersson/nixos-config";   # symlink /etc/nixos here
-  clean.enable = true;
-  clean.extraArgs = "--keep-since 7d --keep 5";
-};
-```
-
-**Asserts** if `nix.gc.automatic = true` is also set — pick one.
-`nh clean` wins because it also cleans direnv GC roots.
-
-home-manager side:
-
-```nix
-programs.direnv = {
-  enable = true;
-  nix-direnv.enable = true;
-  config.global.hide_env_diff = true;
-};
-```
+`nh` asserts against `nix.gc.automatic = true` — we don't set it
+anywhere, so the assertion is moot, but keep that in mind if a
+future tutorial suggests adding it.
 
 ### Step 5 — Dotfiles ↔ Nix integration (Option B)
 
