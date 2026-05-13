@@ -5,6 +5,7 @@
     ./hardware-configuration.nix
     ../../modules/nixos/thinkpad-t14-gen4.nix
     ../../modules/nixos/desktop-gnome.nix
+    ../../modules/nixos/wifi.nix
   ];
 
   # Bootloader. canTouchEfiVariables lets the installer write to NVRAM so
