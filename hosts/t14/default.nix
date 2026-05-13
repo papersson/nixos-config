@@ -48,6 +48,22 @@
   # lives in home-manager.
   programs.zsh.enable = true;
 
+  # `nh` wraps nixos-rebuild with closure diffs and nix-output-monitor.
+  # `nh os switch` from anywhere rebuilds /etc/nixos#t14 without flag
+  # juggling. `nh clean` retires generations older than 7 days while
+  # keeping at least the 5 most recent, and (unlike `nix-collect-garbage`)
+  # also cleans up direnv-managed GC roots.
+  #
+  # nh asserts against `nix.gc.automatic = true` — pick one. We pick nh.
+  programs.nh = {
+    enable = true;
+    flake = "/etc/nixos";
+    clean = {
+      enable = true;
+      extraArgs = "--keep-since 7d --keep 5";
+    };
+  };
+
   # Base CLI tooling needed on first login. Anything user-scoped will move
   # into home-manager later; this list stays small and system-wide.
   environment.systemPackages = with pkgs; [

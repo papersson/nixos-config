@@ -191,6 +191,17 @@
     enableZshIntegration = true;
   };
 
+  # direnv + nix-direnv: per-project devShells activate transparently
+  # on `cd`. nix-direnv caches the shell so re-entry is instant and
+  # the cached derivation is held as a GC root (which nh clean knows
+  # how to reap). hide_env_diff suppresses the noisy "export +FOO -BAR"
+  # printout on each cd.
+  programs.direnv = {
+    enable = true;
+    nix-direnv.enable = true;
+    config.global.hide_env_diff = true;
+  };
+
   # Fall back to other completers when carapace lacks a native one.
   home.sessionVariables = {
     CARAPACE_BRIDGES = "zsh,fish,bash,inshellisense";
