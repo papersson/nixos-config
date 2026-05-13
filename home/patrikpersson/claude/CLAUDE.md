@@ -15,9 +15,11 @@
 
 **Don't manage mutable state via Nix.** Apps that write back to their own config (e.g. `~/.claude/settings.json`) can't be symlinked into the read-only nix store — that breaks them. Write once, leave mutable.
 
-**When suggesting tools, give the Nix path.** Add to the flake and rebuild for persistence; `nix shell nixpkgs#<name>` for one-offs; per-project `devShell` for development environments.
+**When suggesting tools, give the Nix path.** Add to the flake and rebuild for persistence; `nix shell nixpkgs#<name>` for one-offs; per-project `devShell` for development environments (auto-loaded by direnv when an `.envrc` says `use flake`).
 
-**Rebuilds need sudo — Claude can't run them.** Hand off via `! sudo nixos-rebuild switch --flake /etc/nixos#t14`.
+**Rebuilds need sudo — Claude can't run them.** Hand off via `! nh os switch` (preferred, gives closure diffs) or `! sudo nixos-rebuild switch --flake /etc/nixos#t14`.
+
+**Secrets are sops-encrypted in `/etc/nixos/secrets/`.** Edit via `sops secrets/t14.yaml` (decrypts in `$EDITOR`, re-encrypts on save). Reference decrypted paths via `config.sops.secrets.X.path`; never `builtins.readFile` a sops path — that lands plaintext in the world-readable nix store. To rotate the host SSH key: `sops updatekeys secrets/t14.yaml` before the next rebuild.
 
 ## Working style
 
@@ -43,6 +45,10 @@
 - No "I hope this helps", "Certainly!", or meta-disclaimers about being an AI.
 - Bold sparingly, only for real emphasis. Not for decoration.
 - Avoid negative parallelisms — say "X and Y", not "not just X, but Y".
+
+## Maintenance
+
+Keep this file current when the environment shifts. Triggers worth an edit: change to shell / prompt / terminal / desktop, new daily-driver tool added (e.g. `nh`, `direnv`, `sops`), change to how rebuilds happen, change to where packages come from. Skip the trivial — single package additions and version bumps stay out and live in commit messages instead. Project-specific facts go in `/etc/nixos/CLAUDE.md`, not here.
 
 ## References
 
