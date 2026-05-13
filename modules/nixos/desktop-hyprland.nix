@@ -62,13 +62,30 @@
   ];
 
   # Font baseline. Required for emoji + CJK rendering in any GTK/Qt
-  # app; Liberation covers metric-compatible Office substitutes.
+  # app; Liberation covers metric-compatible Office substitutes;
+  # symbols-only Nerd Font provides the icon glyphs that waybar /
+  # wlogout / similar tools embed in their format strings (without
+  # forcing the whole UI into a monospace font).
   fonts.packages = with pkgs; [
     noto-fonts
     noto-fonts-cjk-sans
     noto-fonts-color-emoji
     liberation_ttf
+    nerd-fonts.symbols-only
   ];
+
+  # Without an explicit fontconfig alias, Pango (and therefore GTK +
+  # waybar) treats `font-family: "Noto Sans", "Symbols Nerd Font"` as a
+  # whole-string match list rather than a per-glyph fallback chain — so
+  # PUA icon codepoints render as .notdef instead of falling through to
+  # the symbols font. Registering Symbols Nerd Font in the sans-serif /
+  # monospace defaults makes that fallback explicit at the fontconfig
+  # layer, where every app picks it up.
+  fonts.fontconfig.defaultFonts = {
+    sansSerif = [ "Noto Sans" "Symbols Nerd Font" ];
+    monospace = [ "JetBrainsMono Nerd Font Mono" "Symbols Nerd Font Mono" ];
+    emoji = [ "Noto Color Emoji" ];
+  };
 
   # dconf is the GSettings backend. GTK apps still use it for theme
   # and font hinting even when GNOME isn't running.
