@@ -1,7 +1,7 @@
 { config, pkgs, ... }:
 
 {
-  imports = [ ./nvim.nix ];
+  imports = [ ./nvim.nix ./hyprland.nix ];
 
   home.username = "patrikpersson";
   home.homeDirectory = "/home/patrikpersson";

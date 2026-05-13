@@ -4,7 +4,7 @@
   imports = [
     ./hardware-configuration.nix
     ../../modules/nixos/thinkpad-t14-gen4.nix
-    ../../modules/nixos/desktop-gnome.nix
+    ../../modules/nixos/desktop-hyprland.nix
     ../../modules/nixos/wifi.nix
   ];
 
@@ -111,10 +111,8 @@
 
   services.openssh.enable = true;
 
-  # GNOME 49 ships GNOME Web (Epiphany) as the default browser. Its
-  # WebKitGTK fingerprint is uncommon enough that Cloudflare's bot
-  # detection routinely 403s sites fronted by it (claude.ai included).
-  # The Firefox module wires MIME defaults and desktop integration.
+  # Firefox as the daily browser. Module wires MIME defaults and
+  # desktop integration so links from chat / mail clients open in it.
   programs.firefox.enable = true;
 
   # Pin stateful-option semantics to the release this host was first
