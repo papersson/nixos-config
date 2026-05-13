@@ -68,6 +68,12 @@
     claude-code
   ];
 
+  # Keep /etc/nixos writable by the primary user so editing the flake
+  # doesn't require sudo. Rebuilds still need sudo (nixos-rebuild switch).
+  systemd.tmpfiles.rules = [
+    "d /etc/nixos 0755 patrikpersson users -"
+  ];
+
   services.openssh.enable = true;
 
   # GNOME 49 ships GNOME Web (Epiphany) as the default browser. Its

@@ -4,13 +4,18 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
 
+    home-manager = {
+      url = "github:nix-community/home-manager/release-25.11";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Vendor- and architecture-specific defaults (microcode, fan/thermal,
     # SSD, mesa baseline). No T14 Gen 4 Intel profile exists upstream as
     # of 2026-05; we compose from the generic `common-*` modules instead.
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
   };
 
-  outputs = { self, nixpkgs, nixos-hardware, ... }@inputs: {
+  outputs = { self, nixpkgs, home-manager, nixos-hardware, ... }@inputs: {
     nixosConfigurations.t14 = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
@@ -20,6 +25,13 @@
         nixos-hardware.nixosModules.common-pc-ssd
         nixos-hardware.nixosModules.common-cpu-intel
         nixos-hardware.nixosModules.common-gpu-intel
+        home-manager.nixosModules.home-manager
+        {
+          home-manager.useGlobalPkgs = true;
+          home-manager.useUserPackages = true;
+          home-manager.backupFileExtension = "hm-bak";
+          home-manager.users.patrikpersson = import ./home/patrikpersson;
+        }
       ];
     };
   };
