@@ -95,6 +95,15 @@
       rm = "rm -i";
       cp = "cp -i";
       mv = "mv -i";
+      # Nix flake refs contain `#`, which EXTENDED_GLOB treats as a glob
+      # quantifier — zsh fails with "no matches found" before the tool
+      # even runs. `noglob` disables globbing for the command's args.
+      nix = "noglob nix";
+      "nixos-rebuild" = "noglob nixos-rebuild";
+      "nix-shell" = "noglob nix-shell";
+      # Trailing space makes zsh expand the next word as an alias too,
+      # so `sudo nixos-rebuild …` picks up the noglob alias above.
+      sudo = "sudo ";
     };
 
     # zsh options + keybinds not covered by HM's typed options.
