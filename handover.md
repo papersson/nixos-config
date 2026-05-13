@@ -27,23 +27,27 @@ commit per logical change, push-and-pull as the sync mechanism.
 
 ```
 nixos-config/
-├── flake.nix                       # nixpkgs 25.11 + nixpkgs-unstable + home-manager + nixos-hardware
+├── flake.nix                       # inputs: nixpkgs 25.11, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix
 ├── flake.lock                      # tracked
 ├── CLAUDE.md                       # project-level Claude instructions for this repo
+├── .sops.yaml                      # age recipients (user + host) + creation rules
+├── secrets/
+│   └── t14.yaml                    # sops-encrypted: wifi/home_env + ssh/id_ed25519_persson
 ├── hosts/
 │   └── t14/
-│       ├── default.nix             # system-wide config for this host
+│       ├── default.nix             # system-wide config (incl. programs.nh, programs.zsh, NM, openssh)
 │       └── hardware-configuration.nix  # generated; real UUIDs; tracked
 ├── modules/
 │   └── nixos/
 │       ├── thinkpad-t14-gen4.nix   # chassis-specific tunables
-│       └── desktop-gnome.nix       # GDM + GNOME 49 + dconf + fonts
+│       ├── desktop-gnome.nix       # GDM + GNOME 49 + dconf + fonts
+│       └── wifi.nix                # sops-decrypted NetworkManager.ensureProfiles for home Wi-Fi
 ├── home/
 │   └── patrikpersson/
-│       ├── default.nix             # home-manager user config (git, ghostty, zsh, starship, zoxide, atuin, carapace, claude home.file refs)
+│       ├── default.nix             # HM user config: sops (ssh key), ghostty, zsh stack, direnv, claude home.file refs
 │       ├── starship.toml           # consumed via builtins.fromTOML + readFile
 │       └── claude/
-│           ├── CLAUDE.md           # deployed to ~/.claude/CLAUDE.md by HM
+│           ├── CLAUDE.md           # deployed to ~/.claude/CLAUDE.md by HM (has the hierarchy convention)
 │           └── statusline.sh       # deployed to ~/.claude/statusline.sh (executable)
 ├── docs/
 │   └── drafts/
@@ -77,9 +81,14 @@ git push
 ```bash
 cd /etc/nixos
 git pull --rebase origin main         # /etc/nixos is user-writable now (tmpfiles rule)
-sudo nixos-rebuild dry-build --flake /etc/nixos#t14   # optional, ~30s
-sudo nixos-rebuild switch --flake /etc/nixos#t14
+nh os switch                          # preferred — closure diff + nice output; sudo'd internally
+# or, long form: sudo nixos-rebuild switch --flake /etc/nixos#t14
 ```
+
+`nh os switch` works from any directory because `programs.nh.flake =
+"/etc/nixos"` is set. Read the closure DIFF line — small diffs on a
+config-only edit are expected; a surprising GiB-range diff means an
+input got bumped without you noticing.
 
 If `git pull --rebase` reports a `flake.lock` conflict (both peers
 ran `nix flake lock` independently), the resolution is "take whichever
@@ -250,39 +259,82 @@ Open follow-ups:
 
 ### Step 3 — Lanzaboote (Secure Boot with own keys) (pending BIOS time)
 
-Deferred this session: the user didn't have a window for the BIOS
-dance. Still the right next thing whenever there's 15 quiet minutes
-plus physical access. Sequence remains as below.
+Anti-evil-maid for a consulting laptop. The intended sequence (do
+*not* compress these — order is load-bearing: keys must exist on
+disk and be enrolled in firmware *before* the bootloader flip, or
+the post-flip boot fails verification).
 
-Anti-evil-maid for a consulting laptop. Two phases.
+**Sequence — 7 steps, 2 BIOS visits, 2 rebuilds:**
 
-Phase A — enroll keys (one-off BIOS dance):
+1. **Commit + rebuild #1**: add `lanzaboote` flake input and `sbctl`
+   to `environment.systemPackages`. **Do not** import the lanzaboote
+   module yet. After rebuild, `sbctl` is on `$PATH` but the
+   bootloader is still systemd-boot, unchanged.
 
-```bash
-sudo sbctl create-keys
-sudo bootctl status            # confirm systemd-boot still active
-sudo reboot                    # BIOS → Security → Reset to Setup Mode
-# back at the DE:
-sudo sbctl enroll-keys --microsoft   # keep MS keys so fwupd capsule updates still work
-```
+   ```nix
+   # flake.nix
+   inputs.lanzaboote = {
+     url = "github:nix-community/lanzaboote/v1.0.0";
+     inputs.nixpkgs.follows = "nixpkgs";
+   };
 
-Phase B — flip the bootloader in the flake:
+   # hosts/t14/default.nix — environment.systemPackages list
+   pkgs.sbctl
+   ```
 
-```nix
-imports = [ inputs.lanzaboote.nixosModules.lanzaboote ];
-boot.loader.systemd-boot.enable = lib.mkForce false;
-boot.lanzaboote = {
-  enable = true;
-  pkiBundle = "/var/lib/sbctl";    # default since lanzaboote 0.4.x
-};
-environment.systemPackages = [ pkgs.sbctl ];
-```
+2. **User runs (no Claude involvement)**:
+   ```bash
+   sudo sbctl create-keys     # writes PK/KEK/db keys to /var/lib/sbctl/
+   sudo bootctl status        # sanity: confirm systemd-boot still active
+   ```
+   Keys are inert until enrolled in firmware.
 
-Rebuild, reboot, enter BIOS, re-enable Secure Boot. Verify with
-`sbctl status` (expect "Secure Boot: enabled (user)").
+3. **Reboot into BIOS**: Security → Secure Boot → "Reset to Setup
+   Mode" (Lenovo may label this "Clear All Secure Boot Keys").
+   **Leave Secure Boot disabled** for now. Boot back to GNOME.
 
-Add to flake inputs: `lanzaboote.url = "github:nix-community/lanzaboote/v1.0.0"`
-with `inputs.nixpkgs.follows = "nixpkgs"`.
+4. **User runs**:
+   ```bash
+   sudo sbctl enroll-keys --microsoft
+   ```
+   Pushes PK/KEK/db into firmware via efivars. `--microsoft` keeps
+   MS keys alongside ours so `fwupd` capsule updates still verify.
+   Setup Mode allows this write; without it the enroll fails.
+
+5. **Commit + rebuild #2**: import the Lanzaboote module, disable
+   systemd-boot with `mkForce`, enable Lanzaboote. The rebuild signs
+   *all* available generations as UKIs — that's what makes rollback
+   survivable after Secure Boot is enforced.
+
+   ```nix
+   # hosts/t14/default.nix
+   imports = [ inputs.lanzaboote.nixosModules.lanzaboote ];
+   boot.loader.systemd-boot.enable = lib.mkForce false;
+   boot.lanzaboote = {
+     enable = true;
+     pkiBundle = "/var/lib/sbctl";    # default since lanzaboote 0.4.x
+   };
+   ```
+
+6. **Reboot into BIOS**: Security → Secure Boot → **Enable**.
+   Firmware now verifies every UKI on boot against the keys you
+   enrolled in step 4.
+
+7. **Verify** at the DE:
+   ```bash
+   sbctl status               # expect "Secure Boot: enabled (user)"
+   sbctl verify               # all bootloader/UKI files should be signed
+   ```
+
+**Rollback story** if step 6 produces an unbootable state: the boot
+menu lets you pick a prior generation; step 5 signed all of them, so
+they verify. If even that fails: BIOS → disable Secure Boot, drop
+back to a known-good generation, debug.
+
+**Risk window**: between step 3 (Setup Mode, SB off) and step 6 (SB
+back on), the laptop is *less* protected than baseline. Should be
+minutes, not hours — don't start step 3 unless you can complete the
+sequence in one sitting.
 
 ### Step 4 — `nh` and direnv + nix-direnv ✓ DONE
 
@@ -332,8 +384,11 @@ containers, no microvms — premature for a daily-driver laptop.
 
 ## 7. Explicitly out of scope
 
-- **Telia Wi-Fi PSK rotation.** Skipped per user decision. Don't
-  bring it up.
+- **Telia Wi-Fi PSK rotation.** The PSK is now declarative in
+  `secrets/t14.yaml`; rotating is a `sops secrets/t14.yaml` edit +
+  rebuild, ~30 seconds. The earlier "skipped per user decision" was
+  about not *changing* the PSK on the router, not about leaving it
+  imperative. Mention freely if the user wants to rotate.
 - **GitHub repo visibility flip back to private.** Skipped per user
   decision. Stay on public until further notice.
 - **A second host (server, VPS, homelab).** No physical/virtual
@@ -342,6 +397,31 @@ containers, no microvms — premature for a daily-driver laptop.
   a `hosts/<name>/` directory.
 - **macOS via nix-darwin.** Option A in the architecture draft —
   destination, not next step. Revisit after step 5.
+
+## 7a. Non-declarative bootstrap state — back this up
+
+The flake describes the entire system *except* the credentials that
+unlock it. If the SSD dies, git holds everything reproducible, but
+these two files are the only path back in:
+
+- `~/.config/sops/age/keys.txt` — the user's age private key,
+  derived from `~/.ssh/id_ed25519` via `ssh-to-age`. Without it,
+  `sops secrets/t14.yaml` can't decrypt and you can't bootstrap a
+  replacement host.
+- `~/.ssh/id_ed25519` — the SSH key itself. Recoverable from
+  `secrets/t14.yaml` if you have the age key, but you can't get the
+  age key from anywhere else.
+
+Treat them like a recovery seed phrase: stash off-machine. Options
+that work: encrypted USB stick in a safe, encrypted attachment in a
+password manager (Bitwarden/1Password), printed paper copy in a
+known location. Anything off the laptop.
+
+The host SSH key (`/etc/ssh/ssh_host_ed25519_key`) is *not* in this
+list: it's regenerated on a fresh install, and `sops updatekeys
+secrets/t14.yaml` re-wraps the YAML for the new host key (you
+authorize the rewrap with the user age key). That's why backing up
+the *user* age key is the load-bearing thing.
 
 ## 8. First-session checklist
 
@@ -359,8 +439,12 @@ systemctl --failed             # any failed services?
 fwupdmgr get-devices | head -40  # firmware sanity
 boltctl domains                # bolt daemon up
 echo $SHELL                    # /run/current-system/sw/bin/zsh — confirms login shell change took
-claude --version               # ≥ 2.1.137 confirms pkgs.unstable overlay landed
+claude --version               # any recent version; pkgs.unstable overlay tracks npm
+nh --version && direnv version && sops --version | head -1  # step 2+4 tooling present
+ls -la /run/secrets/wifi/home_env    # sops-decrypted Wi-Fi env file (root-only)
 ```
 
-If all green, start step 3 (Lanzaboote). Cite this handover when
-referencing past decisions; don't re-derive them.
+If all green, start step 3 (Lanzaboote) when BIOS time is available
+— or skip ahead to step 5 (dotfiles integration), which needs no
+physical access. Cite this handover when referencing past decisions;
+don't re-derive them.
