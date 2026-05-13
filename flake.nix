@@ -27,9 +27,17 @@
       url = "github:nix-community/lanzaboote/v1.0.0";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Declarative Neovim. Replaces the previous LazyVim-from-Lua deployment
+    # under home/patrikpersson/nvim/; plugins and LSPs come from nixpkgs so
+    # there's no Mason and no /lib64/ld-linux runtime issue.
+    nixvim = {
+      url = "github:nix-community/nixvim/nixos-25.11";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix, lanzaboote, ... }@inputs: {
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix, lanzaboote, nixvim, ... }@inputs: {
     nixosConfigurations.t14 = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
@@ -46,7 +54,10 @@
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "hm-bak";
-          home-manager.sharedModules = [ sops-nix.homeManagerModules.sops ];
+          home-manager.sharedModules = [
+            sops-nix.homeManagerModules.sops
+            nixvim.homeModules.nixvim
+          ];
           home-manager.users.patrikpersson = import ./home/patrikpersson;
         }
         {

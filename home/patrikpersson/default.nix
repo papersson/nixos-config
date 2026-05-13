@@ -1,6 +1,8 @@
 { config, pkgs, ... }:
 
 {
+  imports = [ ./nvim.nix ];
+
   home.username = "patrikpersson";
   home.homeDirectory = "/home/patrikpersson";
   home.stateVersion = "25.11";
@@ -215,11 +217,10 @@
     jq
     nerd-fonts.jetbrains-mono
     sops
-    neovim
-    # gcc is needed at runtime for nvim-treesitter (compiles parsers
-    # locally) and telescope-fzf-native (builds its C extension via
-    # `make`). Without it, plugin install logs errors but nvim still
-    # works at reduced functionality.
+    # gcc is still here only because the legacy LazyVim deployment
+    # (./nvim/, deployed via xdg.configFile."nvim" below) needs it to
+    # build telescope-fzf-native and compile treesitter parsers. Once
+    # that deployment is removed in the cleanup commit, gcc goes too.
     gcc
   ];
 
