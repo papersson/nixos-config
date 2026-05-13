@@ -136,6 +136,43 @@
     enableZshIntegration = true;
   };
 
+  programs.atuin = {
+    enable = true;
+    enableZshIntegration = true;
+    # `--disable-up-arrow` keeps the existing prefix-search behaviour on
+    # arrow keys (configured in programs.zsh.initContent). Ctrl-R still
+    # opens the atuin fuzzy picker.
+    flags = [ "--disable-up-arrow" ];
+    settings = {
+      search_mode = "fuzzy";
+      filter_mode = "directory";
+      filter_mode_shell_up_key_binding = "global";
+      keymap_mode = "vim-insert";
+      keymap_cursor = {
+        vim_insert = "blink-bar";
+        vim_normal = "steady-block";
+      };
+      style = "compact";
+      inline_height = 40;
+      enter_accept = true;
+      secrets_filter = true;
+      history_filter = [
+        "^export .*="
+        "^source "
+      ];
+    };
+  };
+
+  programs.carapace = {
+    enable = true;
+    enableZshIntegration = true;
+  };
+
+  # Fall back to other completers when carapace lacks a native one.
+  home.sessionVariables = {
+    CARAPACE_BRIDGES = "zsh,fish,bash,inshellisense";
+  };
+
   home.packages = with pkgs; [
     ripgrep
     fd
