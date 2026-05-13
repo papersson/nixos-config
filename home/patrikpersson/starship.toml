@@ -1,0 +1,223 @@
+# Minimal Starship config - colorful and clean
+# Format: ~/path on  branch [status]
+#         ❯
+
+format = """
+$directory$git_branch$git_status
+$character"""
+
+# Don't add blank line between prompts
+add_newline = false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Directory
+# ─────────────────────────────────────────────────────────────────────────────
+[directory]
+format = "[$path]($style) "
+style = "bold #89b4fa"  # Catppuccin blue
+truncation_length = 5
+truncate_to_repo = false
+home_symbol = "~"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Git
+# ─────────────────────────────────────────────────────────────────────────────
+[git_branch]
+symbol = "\ue0a0 "
+format = "[on](dimmed) [$symbol$branch]($style) "
+style = "bold #fab387"  # Catppuccin peach
+
+[git_status]
+format = "[$all_status$ahead_behind]($style)"
+style = "#94e2d5"  # Catppuccin teal
+ahead = "[↑${count}](bold #a6e3a1)"
+behind = "[↓${count}](bold #f38ba8)"
+diverged = "[↑${ahead_count}↓${behind_count}](#f9e2af)"
+modified = "[~${count}](#f9e2af)"
+staged = "[+${count}](#a6e3a1)"
+untracked = "[?${count}](#6c7086)"
+deleted = "[-${count}](#f38ba8)"
+stashed = "[≡${count}](#cba6f7)"
+renamed = ""  # Hide renamed indicator (already counted in staged)
+conflicted = "[!${count}](#f38ba8)"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Prompt Character
+# ─────────────────────────────────────────────────────────────────────────────
+[character]
+success_symbol = "[::](bold #a6e3a1)"  # Catppuccin green
+error_symbol = "[::](bold #f38ba8)"    # Catppuccin red
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Disable noisy modules
+# ─────────────────────────────────────────────────────────────────────────────
+[package]
+disabled = true
+
+[nodejs]
+disabled = true
+
+[python]
+disabled = true
+
+[rust]
+disabled = true
+
+[golang]
+disabled = true
+
+[java]
+disabled = true
+
+[ruby]
+disabled = true
+
+[php]
+disabled = true
+
+[lua]
+disabled = true
+
+[perl]
+disabled = true
+
+[swift]
+disabled = true
+
+[kotlin]
+disabled = true
+
+[scala]
+disabled = true
+
+[elixir]
+disabled = true
+
+[elm]
+disabled = true
+
+[haskell]
+disabled = true
+
+[julia]
+disabled = true
+
+[nim]
+disabled = true
+
+[ocaml]
+disabled = true
+
+[zig]
+disabled = true
+
+[vlang]
+disabled = true
+
+[dotnet]
+disabled = true
+
+[cmake]
+disabled = true
+
+[cobol]
+disabled = true
+
+[daml]
+disabled = true
+
+[dart]
+disabled = true
+
+[deno]
+disabled = true
+
+[buf]
+disabled = true
+
+[c]
+disabled = true
+
+[conda]
+disabled = true
+
+[crystal]
+disabled = true
+
+[docker_context]
+disabled = true
+
+[erlang]
+disabled = true
+
+[gcloud]
+disabled = true
+
+[aws]
+disabled = true
+
+[azure]
+disabled = true
+
+[helm]
+disabled = true
+
+[kubernetes]
+disabled = true
+
+[terraform]
+disabled = true
+
+[vagrant]
+disabled = true
+
+[nix_shell]
+disabled = true
+
+[memory_usage]
+disabled = true
+
+[env_var]
+disabled = true
+
+[cmd_duration]
+disabled = true
+
+[time]
+disabled = true
+
+[line_break]
+disabled = false
+
+[jobs]
+disabled = true
+
+[battery]
+disabled = true
+
+[username]
+disabled = true
+
+[hostname]
+disabled = true
+
+[localip]
+disabled = true
+
+[shlvl]
+disabled = true
+
+[singularity]
+disabled = true
+
+[vcsh]
+disabled = true
+
+[fossil_branch]
+disabled = true
+
+[hg_branch]
+disabled = true
+
+[pijul_channel]
+disabled = true

@@ -39,7 +39,13 @@
   users.users.patrikpersson = {
     isNormalUser = true;
     extraGroups = [ "wheel" "networkmanager" "video" "audio" ];
+    shell = pkgs.zsh;
   };
+
+  # System-level zsh enable is required so login shells set up properly
+  # (PAM session, /etc/zshenv, completion paths). User-level zsh config
+  # lives in home-manager.
+  programs.zsh.enable = true;
 
   # Base CLI tooling needed on first login. Anything user-scoped will move
   # into home-manager later; this list stays small and system-wide.
@@ -62,10 +68,9 @@
     pciutils
     usbutils
 
-    # Agentic CLI assistant. Unfree (Anthropic Commercial Terms);
-    # gated by nixpkgs.config.allowUnfree above. Auth via `claude auth`
-    # on first run — uses an OAuth browser flow.
-    claude-code
+    # Agentic CLI assistant — pulled from unstable for faster updates.
+    # Unfree (Anthropic Commercial Terms); gated by allowUnfree above.
+    pkgs.unstable.claude-code
   ];
 
   # Keep /etc/nixos writable by the primary user so editing the flake

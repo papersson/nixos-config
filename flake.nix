@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     home-manager = {
       url = "github:nix-community/home-manager/release-25.11";
@@ -15,7 +16,7 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
   };
 
-  outputs = { self, nixpkgs, home-manager, nixos-hardware, ... }@inputs: {
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, ... }@inputs: {
     nixosConfigurations.t14 = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
@@ -31,6 +32,19 @@
           home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "hm-bak";
           home-manager.users.patrikpersson = import ./home/patrikpersson;
+        }
+        {
+          # Pull fast-moving packages from unstable without changing the
+          # system channel. `nix flake update nixpkgs-unstable` bumps just
+          # this input.
+          nixpkgs.overlays = [
+            (final: _prev: {
+              unstable = import nixpkgs-unstable {
+                inherit (final.stdenv.hostPlatform) system;
+                config.allowUnfree = true;
+              };
+            })
+          ];
         }
       ];
     };

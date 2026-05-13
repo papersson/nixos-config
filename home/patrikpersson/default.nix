@@ -15,11 +15,133 @@
     };
   };
 
+  programs.ghostty = {
+    enable = true;
+    enableZshIntegration = true;
+    installBatSyntax = true;
+    settings = {
+      background-opacity = 1;
+      window-padding-balance = true;
+      theme = "Catppuccin Mocha";
+      window-padding-x = 10;
+      window-padding-y = 10;
+      keybind = [
+        "ctrl+h=goto_split:left"
+        "ctrl+j=goto_split:bottom"
+        "ctrl+k=goto_split:top"
+        "ctrl+l=goto_split:right"
+        "shift+enter=text:\\n"
+        "global:ctrl+grave_accent=toggle_quick_terminal"
+      ];
+      cursor-style = "block";
+      cursor-style-blink = false;
+      cursor-color = "#ffffff";
+      mouse-hide-while-typing = true;
+      shell-integration-features = "no-cursor";
+      copy-on-select = true;
+      window-inherit-working-directory = true;
+      font-family = "JetBrainsMono Nerd Font Mono";
+      font-thicken = true;
+      adjust-cell-height = "25%";
+    };
+    themes.zenbones-forestbones-dark = {
+      background = "#2c343a";
+      foreground = "#e7dcc4";
+      selection-background = "#615b51";
+      selection-foreground = "#e7dcc4";
+      cursor-color = "#ebe2cf";
+      cursor-text = "#2c343a";
+      palette = [
+        "0=#2c343a"  "1=#e67c7f"  "2=#a9c181"  "3=#ddbd7f"
+        "4=#7fbcb4"  "5=#d69ab7"  "6=#83c193"  "7=#e7dcc4"
+        "8=#45525c"  "9=#ed9294"  "10=#b0ce7b" "11=#edc77a"
+        "12=#7ac9c0" "13=#e5a7c4" "14=#7dd093" "15=#b2a790"
+      ];
+    };
+  };
+
+  # Claude Code config: CLAUDE.md (global instructions) and statusline
+  home.file.".claude/CLAUDE.md".source = ./claude/CLAUDE.md;
+  home.file.".claude/statusline.sh" = {
+    source = ./claude/statusline.sh;
+    executable = true;
+  };
+
+  programs.zsh = {
+    enable = true;
+    autosuggestion.enable = true;
+    syntaxHighlighting.enable = true;
+    defaultKeymap = "viins";
+
+    history = {
+      size = 50000;
+      save = 50000;
+      ignoreDups = true;
+      ignoreSpace = true;
+      share = true;
+      extended = false;
+    };
+
+    shellAliases = {
+      ls = "eza";
+      ll = "eza -lah";
+      la = "eza -a";
+      ".." = "cd ..";
+      "..." = "cd ../..";
+      md = "mkdir -p";
+      rd = "rmdir";
+      g = "git";
+      reload = "source ~/.zshrc";
+      rm = "rm -i";
+      cp = "cp -i";
+      mv = "mv -i";
+    };
+
+    # zsh options + keybinds not covered by HM's typed options.
+    initContent = ''
+      # ── Options ─────────────────────────────────────────────────────
+      setopt AUTO_CD AUTO_PUSHD PUSHD_IGNORE_DUPS CORRECT EXTENDED_GLOB NO_BEEP
+      setopt HIST_REDUCE_BLANKS INC_APPEND_HISTORY
+
+      # ── Vi-mode timing ──────────────────────────────────────────────
+      # 400ms default escape delay feels sluggish in vicmd mode.
+      KEYTIMEOUT=1
+
+      # ── Keybinds: prefix-search history with j/k in vicmd ───────────
+      bindkey -M vicmd 'k' history-beginning-search-backward
+      bindkey -M vicmd 'j' history-beginning-search-forward
+      # Arrow keys / Ctrl-p/n: prefix-based history search
+      bindkey '^[[A' history-beginning-search-backward
+      bindkey '^[[B' history-beginning-search-forward
+      bindkey '^P'   history-beginning-search-backward
+      bindkey '^N'   history-beginning-search-forward
+      # Readline-style line kills
+      bindkey '^U' backward-kill-line
+      bindkey '^K' kill-line
+
+      # ── Completion cache ────────────────────────────────────────────
+      zstyle ':completion:*' use-cache on
+      zstyle ':completion:*' cache-path ~/.zsh/cache
+    '';
+  };
+
+  programs.starship = {
+    enable = true;
+    enableZshIntegration = true;
+    settings = builtins.fromTOML (builtins.readFile ./starship.toml);
+  };
+
+  programs.zoxide = {
+    enable = true;
+    enableZshIntegration = true;
+  };
+
   home.packages = with pkgs; [
     ripgrep
     fd
     bat
     eza
     jq
+    nerd-fonts.jetbrains-mono
   ];
 }
