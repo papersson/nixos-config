@@ -1,9 +1,23 @@
-{ pkgs, ... }:
+{ config, pkgs, ... }:
 
 {
   home.username = "patrikpersson";
   home.homeDirectory = "/home/patrikpersson";
   home.stateVersion = "25.11";
+
+  # SSH private key materialised from sops-encrypted secrets/t14.yaml.
+  # The user's age key (~/.config/sops/age/keys.txt, derived from this
+  # same SSH key via ssh-to-age) is the decryption key. Bootstrap chicken-
+  # and-egg: the first key is generated imperatively, then encoded into
+  # the YAML — subsequent rotations go via `sops secrets/t14.yaml`.
+  sops = {
+    age.keyFile = "${config.home.homeDirectory}/.config/sops/age/keys.txt";
+    defaultSopsFile = ../../secrets/t14.yaml;
+    secrets."ssh/id_ed25519_persson" = {
+      path = "${config.home.homeDirectory}/.ssh/id_ed25519";
+      mode = "0600";
+    };
+  };
 
   programs.git = {
     enable = true;
