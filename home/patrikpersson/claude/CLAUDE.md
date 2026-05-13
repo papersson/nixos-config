@@ -17,9 +17,9 @@
 
 **When suggesting tools, give the Nix path.** Add to the flake and rebuild for persistence; `nix shell nixpkgs#<name>` for one-offs; per-project `devShell` for development environments (auto-loaded by direnv when an `.envrc` says `use flake`).
 
-**Rebuilds need sudo — Claude can't run them.** Hand off via `! nh os switch` (preferred, gives closure diffs) or `! sudo nixos-rebuild switch --flake /etc/nixos#t14`.
+**Rebuilds need sudo — Claude can't run them.** Hand off via `! nh os switch` (works from any directory, includes closure diffs). The long-form `sudo nixos-rebuild switch ...` lives in the project's CLAUDE.md if you need it.
 
-**Secrets are sops-encrypted in `/etc/nixos/secrets/`.** Edit via `sops secrets/t14.yaml` (decrypts in `$EDITOR`, re-encrypts on save). Reference decrypted paths via `config.sops.secrets.X.path`; never `builtins.readFile` a sops path — that lands plaintext in the world-readable nix store. To rotate the host SSH key: `sops updatekeys secrets/t14.yaml` before the next rebuild.
+**Secrets are sops-encrypted, not plaintext in the flake.** Never put credentials directly into Nix values, and never `builtins.readFile` a sops path — both land secrets in the world-readable nix store. When working in `/etc/nixos`, see that repo's CLAUDE.md for the YAML filename, edit commands, and rotation steps.
 
 ## Working style
 
