@@ -217,6 +217,7 @@
     jq
     nerd-fonts.jetbrains-mono
     sops
+    tmux
     # gcc is still here only because the legacy LazyVim deployment
     # (./nvim/, deployed via xdg.configFile."nvim" below) needs it to
     # build telescope-fzf-native and compile treesitter parsers. Once
