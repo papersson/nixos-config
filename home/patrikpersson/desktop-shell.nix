@@ -8,19 +8,21 @@ let
 
   # matugen renders a Material You palette from that wallpaper at build
   # time — `config.programs.matugen.theme.colors` is the parsed result
-  # (an IFD: eval builds the matugen derivation). hyprlock wants the
-  # Hyprland rgb() hex form; matugen's `hex` jsonFormat gives #rrggbb,
-  # so strip the leading #. Spike scope: hyprlock only — waybar/mako
-  # stay on the hand-tuned Nord palette. See
-  # docs/drafts/matugen-dynamic-theming.md.
-  paletteColor = role:
-    "rgb(${lib.removePrefix "#" config.programs.matugen.theme.colors.${role}.default.color})";
+  # (an IFD: eval builds the matugen derivation). Two accessors for the
+  # two consumer formats:
+  #   css          — raw #rrggbb, for waybar/mako CSS and mako settings
+  #   paletteColor — wrapped in rgb(), for Hyprland-format consumers
+  #                  like hyprlock
+  # See docs/drafts/matugen-dynamic-theming.md.
+  css = role: config.programs.matugen.theme.colors.${role}.default.color;
+  paletteColor = role: "rgb(${lib.removePrefix "#" (css role)})";
 in
 {
   # Material You palette generated from the wallpaper above. The module
   # runs matugen inside a derivation at build time (Option 2 / build-time
-  # spike from docs/drafts/matugen-dynamic-theming.md) — no runtime
-  # daemon, no mutable state. Only hyprlock consumes it for now.
+  # theming from docs/drafts/matugen-dynamic-theming.md) — no runtime
+  # daemon, no mutable state. waybar, mako and hyprlock all read it via
+  # the `css` / `paletteColor` helpers above.
   programs.matugen = {
     enable = true;
     inherit wallpaper;
@@ -48,16 +50,15 @@ in
   };
 
   # Notification daemon. Mako reads ~/.config/mako/config (HM writes
-  # it from settings). Nord-adjacent palette to match Adwaita-dark
-  # without looking like raw GTK fallback. anchor=top-right puts
-  # notifications under the waybar clock area.
+  # it from settings). Colours come from the matugen palette so pop-ups
+  # match the bar. anchor=top-right puts them under the waybar clock.
   services.mako = {
     enable = true;
     settings = {
-      "border-color" = "#5e81ac";
-      "background-color" = "#2e3440";
-      "text-color" = "#eceff4";
-      "border-radius" = 6;
+      "border-color" = css "primary";
+      "background-color" = css "surface_container";
+      "text-color" = css "on_surface";
+      "border-radius" = 8;
       "border-size" = 2;
       "default-timeout" = 5000;
       font = "Noto Sans 10";
@@ -80,8 +81,13 @@ in
     settings.mainBar = {
       layer = "top";
       position = "top";
-      height = 32;
-      spacing = 4;
+      height = 34;
+      spacing = 6;
+      # Lift the bar off the screen edges so it reads as a floating
+      # rounded panel (border-radius set in `style` below).
+      margin-top = 6;
+      margin-left = 8;
+      margin-right = 8;
 
       modules-left = [ "hyprland/workspaces" "hyprland/window" ];
       modules-center = [ "clock" ];
@@ -153,64 +159,87 @@ in
       };
     };
 
-    # CSS lives inline so the colour palette stays in one file with the
-    # mako/wallpaper picks above. Bumping these later: edit here, save,
-    # nh os switch, `systemctl --user restart waybar`.
+    # CSS inline so the bar's structure stays in one file. Colours are
+    # the matugen palette via `css` (see the `let` block) — the bar
+    # re-tints whenever the wallpaper changes and the flake is rebuilt.
     style = ''
       * {
         /* Noto Sans for proportional text; Symbols Nerd Font supplies
-           the icon glyphs (battery, wifi, power, …) via Pango fallback.
-           Listing Symbols last keeps the bar's text proportional while
-           still rendering U+E000-F8FF PUA icons. */
+           the icon glyphs (battery, wifi, power, …) via Pango fallback. */
         font-family: "Noto Sans", "Symbols Nerd Font";
         font-size: 13px;
         min-height: 0;
       }
 
+      /* Floating rounded panel — margins in settings.mainBar lift it
+         off the screen edges, border-radius rounds it. */
       window#waybar {
-        background: rgba(46, 52, 64, 0.92);
-        color: #eceff4;
-        border-bottom: 2px solid #5e81ac;
+        background: ${css "surface"};
+        border: 1px solid ${css "outline_variant"};
+        border-radius: 12px;
+        color: ${css "on_surface"};
       }
 
+      /* Workspaces: an accent pill on the active workspace. */
+      #workspaces {
+        margin: 0 4px;
+      }
       #workspaces button {
-        padding: 0 8px;
+        padding: 0 9px;
+        margin: 4px 2px;
+        border: none;
+        border-radius: 8px;
+        box-shadow: none;
         background: transparent;
-        color: #d8dee9;
-        border-radius: 0;
+        color: ${css "on_surface_variant"};
       }
       #workspaces button.active {
-        background: #5e81ac;
-        color: #eceff4;
+        background: ${css "primary"};
+        color: ${css "on_primary"};
       }
       #workspaces button:hover {
-        background: rgba(94, 129, 172, 0.4);
+        background: ${css "surface_container_high"};
+        color: ${css "on_surface"};
       }
 
       #window {
-        padding: 0 10px;
-        color: #d8dee9;
+        padding: 0 8px;
+        color: ${css "on_surface_variant"};
       }
 
       #clock {
-        padding: 0 12px;
+        padding: 0 14px;
         font-weight: bold;
+        color: ${css "primary"};
       }
 
-      #battery, #network, #pulseaudio, #tray, #custom-power {
+      /* Right-side status modules: a chip each. */
+      #pulseaudio,
+      #network,
+      #battery,
+      #custom-power {
         padding: 0 10px;
+        margin: 4px 2px;
+        border-radius: 8px;
+        background: ${css "surface_container"};
+        color: ${css "on_surface"};
+      }
+      #tray {
+        padding: 0 8px;
+        margin: 4px 2px;
       }
 
       #custom-power {
-        color: #bf616a;
+        color: ${css "primary"};
         font-size: 15px;
       }
       #custom-power:hover {
-        background: rgba(191, 97, 106, 0.2);
+        background: ${css "error"};
+        color: ${css "on_primary"};
       }
 
-      #battery.warning  { color: #ebcb8b; }
-      #battery.critical { color: #bf616a; }
+      #battery.warning  { color: ${css "tertiary"}; }
+      #battery.critical { color: ${css "error"}; }
     '';
   };
 
