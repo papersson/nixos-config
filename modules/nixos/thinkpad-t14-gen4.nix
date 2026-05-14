@@ -86,6 +86,60 @@
         actions."update-props"."session.suspend-timeout-seconds" = 0;
       }];
     };
+
+    # Audio routing policy, pinned declaratively so it survives reboots
+    # and dock cycles. Two failure modes plus one preference:
+    #
+    # 1. This chassis' ALSA UCM splits analog output into two mutually
+    #    exclusive card profiles — one exposing Speaker, one exposing
+    #    Headphones. WirePlumber can settle on the Headphones profile
+    #    with nothing in the jack, leaving no usable analog sink.
+    #    device.profile.priority.rules (read by the find-preferred-
+    #    profile hook) lists the Speaker profile first, so the built-in
+    #    speakers are always the active analog output when undocked.
+    # 2. The dock's USB audio sink advertises priority.session 1109,
+    #    above the laptop speaker's 1000, so find-best-default-node
+    #    would auto-promote it to the default sink on connect — into a
+    #    dead 3.5 mm jack (the TS3 Plus has no speakers of its own).
+    #    Drop it to 100. A manual `wpctl set-default` still overrides
+    #    priority, so the dock jack is one command away if speakers
+    #    ever get plugged into it.
+    # 3. Preference: when docked, audio should follow the browser to
+    #    the Acer's built-in speakers. The Acer's DisplayPort audio
+    #    sink is HiFi__HDMI2__sink (confirmed by tone test — HDMI1 is
+    #    the LG, which has no speakers). Bump it to 2000 so it outranks
+    #    the laptop speaker and becomes the default whenever it is
+    #    present; undocked, the sink is gone and the speaker (1000)
+    #    wins. NOTE: HDMI2 is the Acer only while it stays on the same
+    #    dock DisplayPort — swap the monitors' dock ports and it flips.
+    wireplumber.extraConfig."51-dock-audio-policy" = {
+      "device.profile.priority.rules" = [{
+        matches = [
+          { "device.name" = "alsa_card.pci-0000_00_1f.3-platform-skl_hda_dsp_generic"; }
+        ];
+        actions."update-props"."priorities" = [
+          "HiFi (HDMI1, HDMI2, HDMI3, Mic1, Mic2, Speaker)"
+          "HiFi (HDMI1, HDMI2, HDMI3, Headphones, Mic1, Mic2)"
+        ];
+      }];
+      "monitor.alsa.rules" = [
+        {
+          # Dock USB audio: demote below the laptop speaker.
+          matches = [
+            { "node.name" = "~alsa_output.usb-CalDigit.*"; }
+          ];
+          actions."update-props"."priority.session" = 100;
+        }
+        {
+          # Acer DisplayPort audio: promote above the laptop speaker so
+          # it becomes the default sink whenever the dock is connected.
+          matches = [
+            { "node.name" = "alsa_output.pci-0000_00_1f.3-platform-skl_hda_dsp_generic.HiFi__HDMI2__sink"; }
+          ];
+          actions."update-props"."priority.session" = 2000;
+        }
+      ];
+    };
   };
 
   # ---- TrackPoint & touchpad --------------------------------------------
