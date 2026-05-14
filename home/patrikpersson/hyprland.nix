@@ -158,12 +158,16 @@
         "$mod, Return, exec, ghostty"
         "$mod, D,      exec, wofi --show drun"
         "$mod, L,      exec, swaylock -f -c 000000"
+        "$mod SHIFT, E, exec, wlogout"
         # Window management
         "$mod, Q,      killactive,"
         "$mod, F,      fullscreen,"
         "$mod, V,      togglefloating,"
         "$mod, P,      pseudo,"
         "$mod, J,      togglesplit,"
+        # Cycle windows without thinking about direction (Alt-Tab style)
+        "$mod, Tab,       cyclenext,"
+        "$mod SHIFT, Tab, cyclenext, prev"
         # Region screenshot to clipboard
         "$mod SHIFT, S, exec, grim -g \"$(slurp)\" - | wl-copy"
         # Focus movement
@@ -171,6 +175,16 @@
         "$mod, right, movefocus, r"
         "$mod, up,    movefocus, u"
         "$mod, down,  movefocus, d"
+        # Move the focused window within the tiling tree
+        "$mod SHIFT, left,  movewindow, l"
+        "$mod SHIFT, right, movewindow, r"
+        "$mod SHIFT, up,    movewindow, u"
+        "$mod SHIFT, down,  movewindow, d"
+        # Resize the focused window in 40px steps
+        "$mod CTRL, left,  resizeactive, -40 0"
+        "$mod CTRL, right, resizeactive,  40 0"
+        "$mod CTRL, up,    resizeactive,  0 -40"
+        "$mod CTRL, down,  resizeactive,  0 40"
         # Workspaces 1–9 (was 1–5)
         "$mod, 1, workspace, 1"
         "$mod, 2, workspace, 2"
@@ -193,6 +207,12 @@
         # Scroll workspaces with mouse wheel
         "$mod, mouse_down, workspace, e+1"
         "$mod, mouse_up,   workspace, e-1"
+        # Special workspace (scratchpad): $mod+S toggles the hidden
+        # "magic" workspace; $mod+Alt+S throws the focused window into
+        # it. Handy for a stash terminal or notes window. ($mod+Shift+S
+        # is taken by the region screenshot, hence Alt for move-to.)
+        "$mod, S,     togglespecialworkspace, magic"
+        "$mod ALT, S, movetoworkspace, special:magic"
       ];
 
       bindm = [
