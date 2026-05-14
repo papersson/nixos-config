@@ -165,6 +165,7 @@
       bind = [
         # Apps
         "$mod, Return, exec, ghostty"
+        "$mod, B,      exec, zen-beta"
         "$mod, D,      exec, wofi --show drun"
         # Clipboard history picker — cliphist's two watch services
         # (desktop-shell.nix) feed this list; decode + copy on select.
