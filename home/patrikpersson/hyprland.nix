@@ -157,34 +157,35 @@
         # Apps
         "$mod, Return, exec, ghostty"
         "$mod, D,      exec, wofi --show drun"
-        "$mod, L,      exec, swaylock -f -c 000000"
+        "$mod, Escape, exec, swaylock -f -c 000000"
         "$mod SHIFT, E, exec, wlogout"
         # Window management
         "$mod, Q,      killactive,"
         "$mod, F,      fullscreen,"
         "$mod, V,      togglefloating,"
         "$mod, P,      pseudo,"
-        "$mod, J,      togglesplit,"
+        # togglesplit lives on T because J is now focus-down (vim hjkl)
+        "$mod, T,      togglesplit,"
         # Cycle windows without thinking about direction (Alt-Tab style)
         "$mod, Tab,       cyclenext,"
         "$mod SHIFT, Tab, cyclenext, prev"
         # Region screenshot to clipboard
         "$mod SHIFT, S, exec, grim -g \"$(slurp)\" - | wl-copy"
-        # Focus movement
-        "$mod, left,  movefocus, l"
-        "$mod, right, movefocus, r"
-        "$mod, up,    movefocus, u"
-        "$mod, down,  movefocus, d"
+        # Focus movement — vim h/j/k/l = left/down/up/right
+        "$mod, H, movefocus, l"
+        "$mod, J, movefocus, d"
+        "$mod, K, movefocus, u"
+        "$mod, L, movefocus, r"
         # Move the focused window within the tiling tree
-        "$mod SHIFT, left,  movewindow, l"
-        "$mod SHIFT, right, movewindow, r"
-        "$mod SHIFT, up,    movewindow, u"
-        "$mod SHIFT, down,  movewindow, d"
+        "$mod SHIFT, H, movewindow, l"
+        "$mod SHIFT, J, movewindow, d"
+        "$mod SHIFT, K, movewindow, u"
+        "$mod SHIFT, L, movewindow, r"
         # Resize the focused window in 40px steps
-        "$mod CTRL, left,  resizeactive, -40 0"
-        "$mod CTRL, right, resizeactive,  40 0"
-        "$mod CTRL, up,    resizeactive,  0 -40"
-        "$mod CTRL, down,  resizeactive,  0 40"
+        "$mod CTRL, H, resizeactive, -40 0"
+        "$mod CTRL, J, resizeactive,  0 40"
+        "$mod CTRL, K, resizeactive,  0 -40"
+        "$mod CTRL, L, resizeactive,  40 0"
         # Workspaces 1–9 (was 1–5)
         "$mod, 1, workspace, 1"
         "$mod, 2, workspace, 2"

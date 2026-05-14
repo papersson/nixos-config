@@ -131,7 +131,11 @@ in
     # nh os switch, `systemctl --user restart waybar`.
     style = ''
       * {
-        font-family: "Noto Sans", "JetBrainsMono Nerd Font";
+        /* Noto Sans for proportional text; Symbols Nerd Font supplies
+           the icon glyphs (battery, wifi, power, …) via Pango fallback.
+           Listing Symbols last keeps the bar's text proportional while
+           still rendering U+E000-F8FF PUA icons. */
+        font-family: "Noto Sans", "Symbols Nerd Font";
         font-size: 13px;
         min-height: 0;
       }
