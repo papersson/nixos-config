@@ -1,12 +1,39 @@
 { config, pkgs, lib, ... }:
 
 let
-  # NixOS-artwork ships several wallpapers under
-  # ${pkg}/share/backgrounds/nixos/. simple-dark-gray pairs well with
-  # the Adwaita-dark theme set in theming.nix.
-  wallpaper = "${pkgs.nixos-artwork.wallpapers.simple-dark-gray}/share/backgrounds/nixos/nix-wallpaper-simple-dark-gray.png";
+  # Single wallpaper source of truth: hyprpaper displays it and matugen
+  # derives the colour palette from it. Committed into the repo so pure
+  # flake eval can see it. (Anders Jilden — Vernazza, Cinque Terre.)
+  wallpaper = ./wallpapers/cinque-terre.jpg;
+
+  # matugen renders a Material You palette from that wallpaper at build
+  # time — `config.programs.matugen.theme.colors` is the parsed result
+  # (an IFD: eval builds the matugen derivation). hyprlock wants the
+  # Hyprland rgb() hex form; matugen's `hex` jsonFormat gives #rrggbb,
+  # so strip the leading #. Spike scope: hyprlock only — waybar/mako
+  # stay on the hand-tuned Nord palette. See
+  # docs/drafts/matugen-dynamic-theming.md.
+  paletteColor = role:
+    "rgb(${lib.removePrefix "#" config.programs.matugen.theme.colors.${role}.default.color})";
 in
 {
+  # Material You palette generated from the wallpaper above. The module
+  # runs matugen inside a derivation at build time (Option 2 / build-time
+  # spike from docs/drafts/matugen-dynamic-theming.md) — no runtime
+  # daemon, no mutable state. Only hyprlock consumes it for now.
+  programs.matugen = {
+    enable = true;
+    inherit wallpaper;
+    # scheme-content stays faithful to the source image. index 1 picks
+    # the warm sunset candidate colour — index 0 is the cool sea/sky,
+    # which every scheme desaturates to grey-blue. Net: coral primary,
+    # gold tertiary, warm near-black surface.
+    type = "scheme-content";
+    source_color_index = 1;
+    jsonFormat = "hex";
+    variant = "dark";
+  };
+
   # Wallpaper daemon. Hyprland-native, runs as a user systemd service
   # via home-manager. Per-monitor + per-workspace switching via
   # `hyprctl hyprpaper wallpaper`. ipc=on lets us script changes later.
@@ -14,7 +41,7 @@ in
     enable = true;
     settings = {
       ipc = "on";
-      preload = [ wallpaper ];
+      preload = [ "${wallpaper}" ];
       # Empty monitor name (",path") means apply to every output.
       wallpaper = [ ", ${wallpaper}" ];
     };
@@ -226,7 +253,7 @@ in
       };
 
       background = [{
-        path = wallpaper;
+        path = "${wallpaper}";
         blur_passes = 3;
         blur_size = 8;
       }];
@@ -241,11 +268,12 @@ in
         rounding = 8;
         dots_center = true;
         fade_on_empty = false;
-        inner_color = "rgba(46, 52, 64, 0.9)";
-        outer_color = "rgba(94, 129, 172, 1.0)";
-        check_color = "rgba(163, 190, 140, 1.0)";
-        fail_color = "rgba(191, 97, 106, 1.0)";
-        font_color = "rgb(236, 239, 244)";
+        # Material You roles from matugen (see paletteColor above).
+        inner_color = paletteColor "surface";
+        outer_color = paletteColor "primary";
+        check_color = paletteColor "tertiary";
+        fail_color = paletteColor "error";
+        font_color = paletteColor "on_surface";
         placeholder_text = "<i>Password…</i>";
       }];
 
@@ -255,7 +283,7 @@ in
           text = "$TIME";
           font_size = 64;
           font_family = "Noto Sans";
-          color = "rgba(236, 239, 244, 1.0)";
+          color = paletteColor "primary";
           position = "0, 120";
           halign = "center";
           valign = "center";
@@ -265,7 +293,7 @@ in
           text = ''cmd[update:60000] date +"%A, %d %B"'';
           font_size = 20;
           font_family = "Noto Sans";
-          color = "rgba(216, 222, 233, 1.0)";
+          color = paletteColor "on_surface";
           position = "0, 50";
           halign = "center";
           valign = "center";

@@ -35,9 +35,19 @@
       url = "github:nix-community/nixvim/nixos-25.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Material You colour generation from a wallpaper. Pinned to a tag:
+    # matugen's home-manager module assumes v4's JSON shape, and nixpkgs
+    # 25.11 still ships v3 — so we take the binary + module from the flake
+    # itself, not pkgs. Currently a build-time spike feeding hyprlock only;
+    # see docs/drafts/matugen-dynamic-theming.md.
+    matugen = {
+      url = "github:InioX/matugen/v4.1.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix, lanzaboote, nixvim, ... }@inputs: {
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix, lanzaboote, nixvim, matugen, ... }@inputs: {
     nixosConfigurations.t14 = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
@@ -57,6 +67,9 @@
           home-manager.sharedModules = [
             sops-nix.homeManagerModules.sops
             nixvim.homeModules.nixvim
+            # Defines `programs.matugen` for the HM config. Named
+            # `nixosModules` upstream but it's a home-manager module.
+            matugen.nixosModules.default
           ];
           home-manager.users.patrikpersson = import ./home/patrikpersson;
         }
