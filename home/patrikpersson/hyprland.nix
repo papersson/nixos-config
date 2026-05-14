@@ -16,8 +16,45 @@
     settings = {
       "$mod" = "SUPER";
 
-      # T14 internal panel eDP-1 at 1920×1200, 1.25× fractional scaling.
-      monitor = ",preferred,auto,1.25";
+      # Monitor layout, left to right: laptop · LG 4K · Acer 1440p.
+      # Externals are matched by `desc:` rather than DP-N connector
+      # index — the index shifts when the dock re-enumerates, the
+      # description doesn't. The desc strings are deliberately trimmed
+      # to a unique *prefix*: Hyprland does partial matching, and the
+      # Acer's full description ends in "#ASNuK+hpntPd" — a literal `#`
+      # that Hyprland's parser treats as a line comment, silently
+      # truncating the monitor line. Keep these prefixes `#`-free.
+      # Positions are in *scaled* (logical) pixels:
+      #   eDP-1  1920×1200 @1.25  → 1536×960 logical, at 0,240
+      #   DP-3   3840×2160 @1.5   → 2560×1440 logical, at 1536,0
+      #   DP-4   2560×1440 @1     → 2560×1440 logical, at 4096,0
+      # The laptop gets y=240 so its 960px-tall logical area is centred
+      # against the 1440px monitors — cursor crosses edges mid-height.
+      # The Acer is a 144 Hz panel; `preferred` picks 60, so pin @144.
+      # Trailing catch-all keeps any unknown display usable at 1×.
+      monitor = [
+        "eDP-1, 1920x1200@60, 0x240, 1.25"
+        "desc:LG Electronics LG HDR 4K, 3840x2160@60, 1536x0, 1.5"
+        "desc:Acer Technologies XB271HU, 2560x1440@144, 4096x0, 1"
+        ", preferred, auto, 1"
+      ];
+
+      # Workspaces are pinned to monitors: 1–3 laptop, 4–6 the 4K,
+      # 7–9 the Acer. `default:true` makes each monitor open on the
+      # first of its range. Terminals live on the 4K (ws 4–6), browser
+      # on the Acer (ws 7–9), laptop is the spare (ws 1–3). When the
+      # dock is absent these rules simply fall back to the laptop.
+      workspace = [
+        "1, monitor:eDP-1, default:true"
+        "2, monitor:eDP-1"
+        "3, monitor:eDP-1"
+        "4, monitor:desc:LG Electronics LG HDR 4K, default:true"
+        "5, monitor:desc:LG Electronics LG HDR 4K"
+        "6, monitor:desc:LG Electronics LG HDR 4K"
+        "7, monitor:desc:Acer Technologies XB271HU, default:true"
+        "8, monitor:desc:Acer Technologies XB271HU"
+        "9, monitor:desc:Acer Technologies XB271HU"
+      ];
 
       # Cursor size — Hyprland reads these env vars at startup. XCURSOR
       # covers XWayland + most apps; HYPRCURSOR is the newer Hyprland-
@@ -137,6 +174,10 @@
         "float, title:^(File Operation Progress)$"
         "float, title:^(Picture-in-Picture)$"
         "pin,   title:^(Picture-in-Picture)$"
+        # Zen always opens on the browser workspace (ws 7, the Acer).
+        # Only the browser is pinned — terminals stay unpinned so they
+        # open on whatever monitor is focused.
+        "workspace 7, class:^(zen-beta)$"
       ];
 
       # XF86 media keys. Brightness + volume up/down repeat while held
@@ -242,6 +283,9 @@
       # polkit agent stays as exec-once — it has no HM systemd module.
       exec-once = [
         "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
+        # Start focused on the 4K (the primary), not whatever monitor
+        # Hyprland enumerates first. No-op when the dock is absent.
+        "hyprctl dispatch focusmonitor desc:LG Electronics LG HDR 4K"
       ];
     };
   };
