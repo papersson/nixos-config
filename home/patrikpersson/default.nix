@@ -42,10 +42,14 @@
       window-padding-x = 10;
       window-padding-y = 10;
       keybind = [
+        # Navigate between splits
         "ctrl+h=goto_split:left"
         "ctrl+j=goto_split:bottom"
         "ctrl+k=goto_split:top"
         "ctrl+l=goto_split:right"
+        # Create splits: ctrl+- (horizontal divider), ctrl+| (vertical divider)
+        "ctrl+shift+minus=new_split:down"
+        "ctrl+shift+backslash=new_split:right"
         "shift+enter=text:\\n"
         "global:ctrl+grave_accent=toggle_quick_terminal"
       ];
