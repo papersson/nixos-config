@@ -1,7 +1,7 @@
 { config, pkgs, ... }:
 
 {
-  imports = [ ./nvim.nix ./hyprland.nix ./theming.nix ./desktop-shell.nix ];
+  imports = [ ./nvim.nix ./hyprland.nix ./theming.nix ./desktop-shell.nix ./claude.nix ];
 
   home.username = "patrikpersson";
   home.homeDirectory = "/home/patrikpersson";
@@ -78,13 +78,6 @@
         "12=#7ac9c0" "13=#e5a7c4" "14=#7dd093" "15=#b2a790"
       ];
     };
-  };
-
-  # Claude Code config: CLAUDE.md (global instructions) and statusline
-  home.file.".claude/CLAUDE.md".source = ./claude/CLAUDE.md;
-  home.file.".claude/statusline.sh" = {
-    source = ./claude/statusline.sh;
-    executable = true;
   };
 
   programs.zsh = {

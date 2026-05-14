@@ -25,7 +25,7 @@ This is the flake configuring the `t14` host. Single user (`patrikpersson`), sin
 ## Repo conventions
 
 - `home.file.*.source` paths must be **relative** to the flake (`./claude/CLAUDE.md`), not absolute (`/home/...`). Pure evaluation mode rejects absolute paths.
-- **Mutable-state config files** (e.g. `~/.claude/settings.json`) are written directly to disk, not managed by home-manager. The nix store is read-only; apps that mutate their own config can't be symlinked into it.
+- **Truly mutable state** — caches and files an app *rewrites at runtime* (e.g. `~/.claude.json`: OAuth tokens, onboarding flags) — is not nix-managed; the read-only store can't hold a file the app needs to overwrite. **Config an app merely exposes a UI for** is a separate case: `~/.claude/settings.json` is nix-managed declaratively via `programs.claude-code` (`home/patrikpersson/claude.nix`), accepting that in-app `/config` edits won't survive a rebuild.
 - **Fast-moving packages** come from the `pkgs.unstable.*` overlay (defined in `flake.nix`). Bump with `nix flake update nixpkgs-unstable`.
 - **Secrets**: edit via `sops secrets/t14.yaml` (decrypts in `$EDITOR`, re-encrypts on save). Reference decrypted paths via `config.sops.secrets.X.path`; **never** `builtins.readFile` a sops path — that lands plaintext in the world-readable Nix store. If the host SSH key is ever rotated, run `sops updatekeys secrets/t14.yaml` or activation fails to decrypt.
 - **One commit per logical change.** Imperative subject line ("Add X", "Fix Y"). Push directly to `main` — no PRs.

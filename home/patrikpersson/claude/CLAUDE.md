@@ -14,7 +14,7 @@
 
 **Prefer typed modules over config-file drops.** If `programs.X` exists in NixOS or home-manager, use it. Don't write a `home.file` symlink when a real module covers the option. Option search: <https://search.nixos.org/options>, <https://home-manager-options.extranix.com/>.
 
-**Don't manage mutable state via Nix.** Apps that write back to their own config (e.g. `~/.claude/settings.json`) can't be symlinked into the read-only nix store — that breaks them. Write once, leave mutable.
+**Don't manage truly-mutable state via Nix.** Caches and files an app rewrites at runtime (e.g. `~/.claude.json` — OAuth, onboarding flags) can't be symlinked into the read-only nix store. But config an app merely *offers* a UI for (e.g. `~/.claude/settings.json`) can be nix-managed if you accept that in-app edits won't persist — `/etc/nixos` does exactly this via `programs.claude-code`.
 
 **When suggesting tools, give the Nix path.** Add to the flake and rebuild for persistence; `nix shell nixpkgs#<name>` for one-offs; per-project `devShell` for development environments (auto-loaded by direnv when an `.envrc` says `use flake`).
 
