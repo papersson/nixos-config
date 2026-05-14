@@ -31,6 +31,15 @@
     };
   };
 
+  # Zen browser (Firefox fork) as the daily driver — replaces the system
+  # programs.firefox. setAsDefaultBrowser wires xdg.mimeApps for the
+  # http(s)/file schemes and exports $BROWSER, so links from mail and
+  # chat clients open here.
+  programs.zen-browser = {
+    enable = true;
+    setAsDefaultBrowser = true;
+  };
+
   programs.ghostty = {
     enable = true;
     enableZshIntegration = true;

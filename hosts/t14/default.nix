@@ -111,10 +111,6 @@
 
   services.openssh.enable = true;
 
-  # Firefox as the daily browser. Module wires MIME defaults and
-  # desktop integration so links from chat / mail clients open in it.
-  programs.firefox.enable = true;
-
   # Pin stateful-option semantics to the release this host was first
   # installed under. Do not change after install — see `man configuration.nix`.
   system.stateVersion = "25.11";
