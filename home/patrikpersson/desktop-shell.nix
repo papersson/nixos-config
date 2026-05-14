@@ -16,6 +16,15 @@ let
   # See docs/drafts/matugen-dynamic-theming.md.
   css = role: config.programs.matugen.theme.colors.${role}.default.color;
   paletteColor = role: "rgb(${lib.removePrefix "#" (css role)})";
+
+  # Nerd Font icon glyphs, referenced by codepoint. Raw glyphs live in
+  # the Private Use Area (U+E000–U+F8FF); the editing pipeline silently
+  # strips PUA characters on save — which is why every waybar icon kept
+  # vanishing to an empty string. This keeps the source pure-ASCII:
+  # builtins.fromJSON decodes the \u escape into the real char at eval
+  # time, and the glyph only ever exists in the generated config. BMP
+  # codepoints only (4 hex digits) — covers the Font Awesome set used here.
+  glyph = cp: builtins.fromJSON ''"\u${cp}"'';
 in
 {
   # Material You palette generated from the wallpaper above. The module
@@ -123,24 +132,31 @@ in
           critical = 15;
         };
         format = "{capacity}% {icon}";
-        format-charging = "{capacity}% ";
-        format-plugged = "{capacity}% ";
-        format-icons = [ "" "" "" "" "" ];
+        format-charging = "{capacity}% ${glyph "f0e7"}";
+        format-plugged = "{capacity}% ${glyph "f1e6"}";
+        # Battery levels, empty → full (nf-fa-battery_0 … battery_4).
+        format-icons = [
+          (glyph "f244")
+          (glyph "f243")
+          (glyph "f242")
+          (glyph "f241")
+          (glyph "f240")
+        ];
       };
 
       network = {
-        format-wifi = "{essid} ({signalStrength}%) ";
-        format-ethernet = "{ipaddr} ";
+        format-wifi = "{essid} ({signalStrength}%) ${glyph "f1eb"}";
+        format-ethernet = "{ipaddr} ${glyph "f0e8"}";
         format-disconnected = "disconnected ⚠";
         tooltip-format = "{ifname}: {ipaddr}";
       };
 
       pulseaudio = {
         format = "{volume}% {icon}";
-        format-muted = "muted ";
+        format-muted = "muted ${glyph "f026"}";
         format-icons = {
-          headphone = "";
-          default = [ "" "" "" ];
+          headphone = glyph "f025";
+          default = [ (glyph "f026") (glyph "f027") (glyph "f028") ];
         };
         on-click = "pavucontrol";
       };
@@ -150,10 +166,10 @@ in
       };
 
       # Power button → opens wlogout, a full-screen overlay with
-      # lock / logout / suspend / reboot / shutdown buttons. The
-      # nerd-font glyph below is the standard power icon.
+      # lock / logout / suspend / reboot / shutdown buttons. Icon is
+      # nf-fa-power_off (U+F011) built via the `glyph` helper.
       "custom/power" = {
-        format = "";
+        format = glyph "f011";
         tooltip = false;
         on-click = "wlogout";
       };
@@ -232,6 +248,9 @@ in
       #custom-power {
         color: ${css "primary"};
         font-size: 15px;
+        /* Icon-only module — force the symbols font directly instead of
+           relying on the Noto-Sans→Symbols Pango fallback chain. */
+        font-family: "Symbols Nerd Font";
       }
       #custom-power:hover {
         background: ${css "error"};
