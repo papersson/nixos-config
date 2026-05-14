@@ -186,4 +186,101 @@ in
       #battery.critical { color: #bf616a; }
     '';
   };
+
+  # Idle daemon. Replaces the old swayidle exec-once string with a typed
+  # systemd user service. hypridle listens for the logind Lock/Unlock
+  # and sleep signals, so `loginctl lock-session` (bound to $mod+Escape
+  # in hyprland.nix, and fired before suspend) routes through here to
+  # start hyprlock.
+  services.hypridle = {
+    enable = true;
+    settings = {
+      general = {
+        lock_cmd = "pidof hyprlock || hyprlock";
+        before_sleep_cmd = "loginctl lock-session";
+        after_sleep_cmd = "hyprctl dispatch dpms on";
+      };
+      # 5 min → lock, 10 min → screen off, 15 min → suspend.
+      listener = [
+        { timeout = 300; on-timeout = "loginctl lock-session"; }
+        {
+          timeout = 600;
+          on-timeout = "hyprctl dispatch dpms off";
+          on-resume = "hyprctl dispatch dpms on";
+        }
+        { timeout = 900; on-timeout = "systemctl suspend"; }
+      ];
+    };
+  };
+
+  # Lock screen. Hyprland-native, GPU-accelerated — replaces swaylock.
+  # Background is the same wallpaper as hyprpaper, blurred; palette
+  # matches the Nord-ish waybar/mako theme above.
+  programs.hyprlock = {
+    enable = true;
+    settings = {
+      general = {
+        hide_cursor = true;
+        grace = 0;
+        ignore_empty_input = true;
+      };
+
+      background = [{
+        path = wallpaper;
+        blur_passes = 3;
+        blur_size = 8;
+      }];
+
+      input-field = [{
+        monitor = "";
+        size = "300, 50";
+        position = "0, -80";
+        halign = "center";
+        valign = "center";
+        outline_thickness = 2;
+        rounding = 8;
+        dots_center = true;
+        fade_on_empty = false;
+        inner_color = "rgba(46, 52, 64, 0.9)";
+        outer_color = "rgba(94, 129, 172, 1.0)";
+        check_color = "rgba(163, 190, 140, 1.0)";
+        fail_color = "rgba(191, 97, 106, 1.0)";
+        font_color = "rgb(236, 239, 244)";
+        placeholder_text = "<i>Password…</i>";
+      }];
+
+      label = [
+        {
+          monitor = "";
+          text = "$TIME";
+          font_size = 64;
+          font_family = "Noto Sans";
+          color = "rgba(236, 239, 244, 1.0)";
+          position = "0, 120";
+          halign = "center";
+          valign = "center";
+        }
+        {
+          monitor = "";
+          text = ''cmd[update:60000] date +"%A, %d %B"'';
+          font_size = 20;
+          font_family = "Noto Sans";
+          color = "rgba(216, 222, 233, 1.0)";
+          position = "0, 50";
+          halign = "center";
+          valign = "center";
+        }
+      ];
+    };
+  };
+
+  # On-screen display for volume / brightness / caps-lock. The XF86
+  # media keys in hyprland.nix call swayosd-client, which performs the
+  # change *and* draws the popup — replacing the silent brightnessctl /
+  # wpctl calls. Runs swayosd-server as a user service.
+  services.swayosd.enable = true;
+
+  # Clipboard history. Two `wl-paste --watch` user services record text
+  # and image copies; `$mod+C` (hyprland.nix) lists them through wofi.
+  services.cliphist.enable = true;
 }

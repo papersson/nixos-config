@@ -42,14 +42,13 @@
   };
 
   # Userland Hyprland needs but doesn't install itself. waybar / mako /
-  # hyprpaper are installed and configured per-user via home-manager
-  # (see home/patrikpersson/desktop-shell.nix) — listing them here
-  # would duplicate the closure entry under the system profile.
+  # hyprpaper plus the lock/idle/OSD/clipboard services are installed
+  # and configured per-user via home-manager (see
+  # home/patrikpersson/desktop-shell.nix) — listing them here would
+  # duplicate the closure entry under the system profile.
   # pavucontrol = GUI volume mixer, fired by waybar's on-click handler.
   environment.systemPackages = with pkgs; [
     wofi
-    swaylock
-    swayidle
     grim
     slurp
     wl-clipboard

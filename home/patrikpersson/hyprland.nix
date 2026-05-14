@@ -139,25 +139,39 @@
         "pin,   title:^(Picture-in-Picture)$"
       ];
 
-      # XF86 media keys. brightnessctl + playerctl ship from the t14
-      # thinkpad module; wpctl is part of pipewire.
+      # XF86 media keys. Brightness + volume up/down repeat while held
+      # (bindel) and route through swayosd-client, which performs the
+      # change *and* shows an on-screen popup (see services.swayosd in
+      # desktop-shell.nix). playerctl ships from the t14 thinkpad module.
       bindel = [
-        ",XF86MonBrightnessUp,   exec, brightnessctl s 5%+"
-        ",XF86MonBrightnessDown, exec, brightnessctl s 5%-"
-        ",XF86AudioRaiseVolume,  exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"
-        ",XF86AudioLowerVolume,  exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
-        ",XF86AudioMute,         exec, wpctl set-mute   @DEFAULT_AUDIO_SINK@ toggle"
-        ",XF86AudioMicMute,      exec, wpctl set-mute   @DEFAULT_AUDIO_SOURCE@ toggle"
-        ",XF86AudioPlay,         exec, playerctl play-pause"
-        ",XF86AudioNext,         exec, playerctl next"
-        ",XF86AudioPrev,         exec, playerctl previous"
+        ",XF86MonBrightnessUp,   exec, swayosd-client --brightness raise"
+        ",XF86MonBrightnessDown, exec, swayosd-client --brightness lower"
+        ",XF86AudioRaiseVolume,  exec, swayosd-client --output-volume raise"
+        ",XF86AudioLowerVolume,  exec, swayosd-client --output-volume lower"
+      ];
+
+      # Non-repeating, and still fire on the lock screen (bindl). Mute
+      # toggles and caps-lock also show a swayosd popup; the caps-lock
+      # sleep lets the LED state settle before swayosd-client reads it.
+      bindl = [
+        ",XF86AudioMute,    exec, swayosd-client --output-volume mute-toggle"
+        ",XF86AudioMicMute, exec, swayosd-client --input-volume mute-toggle"
+        ",XF86AudioPlay,    exec, playerctl play-pause"
+        ",XF86AudioNext,    exec, playerctl next"
+        ",XF86AudioPrev,    exec, playerctl previous"
+        ", Caps_Lock,       exec, sleep 0.1 && swayosd-client --caps-lock"
       ];
 
       bind = [
         # Apps
         "$mod, Return, exec, ghostty"
         "$mod, D,      exec, wofi --show drun"
-        "$mod, Escape, exec, swaylock -f -c 000000"
+        # Clipboard history picker — cliphist's two watch services
+        # (desktop-shell.nix) feed this list; decode + copy on select.
+        "$mod, C,      exec, cliphist list | wofi --dmenu | cliphist decode | wl-copy"
+        # Lock via logind so hypridle's lock_cmd runs hyprlock (one path
+        # for manual lock, idle-timeout lock, and before-suspend lock).
+        "$mod, Escape, exec, loginctl lock-session"
         "$mod SHIFT, E, exec, wlogout"
         # Window management
         "$mod, Q,      killactive,"
@@ -221,13 +235,12 @@
         "$mod, mouse:273, resizewindow"
       ];
 
-      # Session autostart. waybar / mako / hyprpaper are now systemd
-      # user services (see desktop-shell.nix) so they restart cleanly
-      # on crash. Only the polkit agent and swayidle stay as exec-once
-      # since they don't have HM-managed systemd integration.
+      # Session autostart. waybar / mako / hyprpaper / hypridle / swayosd
+      # / cliphist are all systemd user services now (see
+      # desktop-shell.nix), so they restart cleanly on crash. Only the
+      # polkit agent stays as exec-once — it has no HM systemd module.
       exec-once = [
         "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1"
-        "swayidle -w timeout 300 'swaylock -f -c 000000' timeout 600 'hyprctl dispatch dpms off' resume 'hyprctl dispatch dpms on' before-sleep 'swaylock -f -c 000000'"
       ];
     };
   };
