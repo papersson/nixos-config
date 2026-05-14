@@ -16,7 +16,9 @@
 
 **Don't manage truly-mutable state via Nix.** Caches and files an app rewrites at runtime (e.g. `~/.claude.json` — OAuth, onboarding flags) can't be symlinked into the read-only nix store. But config an app merely *offers* a UI for (e.g. `~/.claude/settings.json`) can be nix-managed if you accept that in-app edits won't persist — `/etc/nixos` does exactly this via `programs.claude-code`.
 
-**When suggesting tools, give the Nix path.** Add to the flake and rebuild for persistence; `nix shell nixpkgs#<name>` for one-offs; per-project `devShell` for development environments (auto-loaded by direnv when an `.envrc` says `use flake`).
+**When suggesting tools, give the Nix path.** Add to the flake and rebuild for persistence; `nix shell nixpkgs#<name>` for one-offs; a per-project `devShell` for development environments (see the devShell rule below).
+
+**Every project ships its own devShell.** Each project has a `flake.nix` exposing `devShells.default` plus an `.envrc` containing `use flake`, so direnv auto-loads it on `cd`. Stage new `flake.nix`/`.envrc` files as soon as they're created — flakes only evaluate git-tracked files, so an unstaged flake is invisible to Nix and the devShell silently won't load. Project tooling — compilers, language servers, formatters — comes from that devShell and nothing else: never install it imperatively, and don't assume it's present system-wide (projects are worked on from more than one machine). Plain `pkgs.mkShell` is the standard; reach for `devenv` only when a project needs orchestrated runtime services.
 
 **Rebuilds need sudo — Claude can't run them.** Hand off via `! nh os switch` (works from any directory, includes closure diffs). The long-form `sudo nixos-rebuild switch ...` lives in the project's CLAUDE.md if you need it.
 
@@ -29,6 +31,15 @@
 - Search first, read full files second, change third.
 - Verify changes (run the test, type-check, rebuild). Don't assume.
 - Fail fast with clear messages. Don't swallow errors silently.
+
+## Shared working trees
+
+Multiple agents — and the user — may be working in the same repository at the same time, so the working tree can shift under you mid-task.
+
+- **Commit only what you changed.** Stage by explicit path (`git add path/to/file`); never `git add -A` or `git add .` — that sweeps up another agent's or the user's in-progress work.
+- **Re-check `git status` and `git diff` right before committing** — the tree may differ from when you started.
+- **Don't revert, reformat, or "tidy" changes you didn't make** — assume they're intentional, even if entangled in a file you also touched.
+- **Commit your own work once a logical unit is done** rather than leaving it piled in the working tree for someone else to untangle. Commit, don't push — leave pushing to the user unless a repo's own CLAUDE.md says otherwise.
 
 ## Tooling preferences
 
@@ -62,6 +73,12 @@ Avoid two failure modes:
 - **Scope bleed**: a fact in a child is *not* loaded outside that subtree — cross-cutting rules placed there go silent the moment you `cd` away.
 
 When introducing a new rule, ask: "from which directory will future-me be working when this rule applies?" That directory's CLAUDE.md is where it goes. If a project grows a subsystem with its own non-obvious conventions, that's a signal to create a CLAUDE.md inside it rather than expand the root file.
+
+## Drafts and ideas
+
+Undecided design notes — ideas being weighed, proposals not yet adopted — live in `~/drafts/`, one file per idea. This is deliberately *outside* the CLAUDE.md scope hierarchy above: that hierarchy is for decided rules that should load as context within a scope, whereas a draft is not-yet-context, and often not yet sure which scope it belongs to. Keeping drafts out of project trees also stops an agent from reading a maybe as guidance.
+
+When a draft is adopted or rejected, fold the outcome into the CLAUDE.md at the right scope and delete the draft. `~/drafts/` holds only live, undecided thinking.
 
 ## Maintenance
 
