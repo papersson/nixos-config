@@ -59,6 +59,9 @@
         # Create splits: ctrl+- (horizontal divider), ctrl+| (vertical divider)
         "ctrl+shift+minus=new_split:down"
         "ctrl+shift+backslash=new_split:right"
+        # Close the focused split. Linux has no default close_surface bind;
+        # falls through to closing the tab/window when it's the last surface.
+        "ctrl+shift+w=close_surface"
         "shift+enter=text:\\n"
         "global:ctrl+grave_accent=toggle_quick_terminal"
       ];
