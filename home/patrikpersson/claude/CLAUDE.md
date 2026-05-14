@@ -67,6 +67,8 @@ When introducing a new rule, ask: "from which directory will future-me be workin
 
 Keep this file current when the environment shifts. Triggers worth an edit: change to shell / prompt / terminal / desktop, new daily-driver tool added (e.g. `nh`, `direnv`, `sops`), change to how rebuilds happen, change to where packages come from. Skip the trivial — single package additions and version bumps stay out and live in commit messages instead. Project-specific facts go in the project's CLAUDE.md, subsystem-specific facts go deeper; see the Hierarchy section above for placement.
 
+**Editing this file:** `~/.claude/CLAUDE.md` is a symlink into the read-only nix store — it's nix-managed via `programs.claude-code` (`memory.source` in `/etc/nixos/home/patrikpersson/claude.nix`). Don't write through the symlink; it will fail. Edit the real source at `/etc/nixos/home/patrikpersson/claude/CLAUDE.md`, then rebuild for the change to take effect. Same applies to any other path that resolves into `/nix/store` — `readlink -f` first if a write is refused.
+
 ## References
 
 - NixOS manual (25.11): <https://nixos.org/manual/nixos/stable/>
