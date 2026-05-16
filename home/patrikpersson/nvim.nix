@@ -508,6 +508,7 @@
           query
           regex
           rust
+          scala
           toml
           tsx
           typescript
@@ -616,6 +617,10 @@
           zls.enable = true;
           # TypeScript/JavaScript — common.
           ts_ls.enable = true;
+          # Scala 3 — for the higher-kinded-types educational project. The
+          # bundled binary is a fallback; that project's devShell puts its own
+          # `metals` earlier on PATH (nixvim appends its bundle as a suffix).
+          metals.enable = true;
         };
         keymaps = {
           silent = true;
