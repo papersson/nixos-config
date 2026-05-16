@@ -69,6 +69,9 @@
       cursor-style-blink = false;
       cursor-color = "#ffffff";
       mouse-hide-while-typing = true;
+      # G502 wheel emits high-res sub-events per detent; default 3.0
+      # multiplies into ~20 lines/notch. 1.0 brings it back to sane.
+      mouse-scroll-multiplier = 1.0;
       shell-integration-features = "no-cursor";
       copy-on-select = true;
       window-inherit-working-directory = true;
