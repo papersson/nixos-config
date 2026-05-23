@@ -53,8 +53,9 @@ GPU stays in the box but is not loaded — `hardware.nvidia` is not enabled. M50
 
 1. Run `smartctl -t long` on all four HC550s. Wait for completion.
 2. Verify SMART attributes clean. RMA any flagging drive.
-3. Create ZFS pool `tank` via a new `modules/nixos/zfs-tank.nix` module imported from `hosts/z840/default.nix`. Datasets above.
-4. Verify pool: `zpool status`, `zfs list`, write a test file, confirm `recordsize=1M` on `tank/media`.
+3. Create the pool and datasets as a **one-shot imperative step, documented as a runbook, not a NixOS module**: `zpool create -o ashift=12 tank raidz1 /dev/disk/by-id/...`, then `zfs create tank/media` and the rest (datasets above). Pool creation is deliberately never declarative. Declaring it is Option B's footgun, where a `--mode destroy,format` run wipes 48 TB. The pool is created exactly once and import-only forever after.
+4. Declare only the **import-only, idempotent** half in a new `modules/nixos/zfs-tank.nix` imported from `hosts/z840/default.nix`: ZFS support, `boot.zfs.extraPools = [ "tank" ]`, `fileSystems` mount points for the datasets, and snapshot policy (`services.sanoid` or similar). Safe to re-run on every reinstall. It never creates the pool.
+5. Verify pool: `zpool status`, `zfs list`, write a test file, confirm `recordsize=1M` on `tank/media`.
 
 ### Phase 1 — Jellyfin alone, LAN only
 
@@ -100,7 +101,7 @@ GPU stays in the box but is not loaded — `hardware.nvidia` is not enabled. M50
 ## File map (when implemented)
 
 - `hosts/z840/default.nix` — adds nixarr, services.jellyfin, services.tailscale wiring
-- `modules/nixos/zfs-tank.nix` (new) — ZFS pool + datasets + snapshot policy
+- `modules/nixos/zfs-tank.nix` (new) — declares ZFS support, pool *import* (`boot.zfs.extraPools`), dataset mount points, and snapshot policy. Does **not** create the pool; that is a one-shot runbook step (see Phase 0).
 - `modules/nixos/media-server.nix` (new) — nixarr composition (or fold into z840 default.nix if it stays simple)
 - `secrets/z840.yaml` (new) — Mullvad WireGuard private key + any *arr API keys
 - `.sops.yaml` — add z840 host recipient
