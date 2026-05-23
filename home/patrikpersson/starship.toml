@@ -4,7 +4,7 @@
 
 format = """
 $directory$git_branch$git_status
-$character"""
+$hostname$character"""
 
 # Don't add blank line between prompts
 add_newline = false
@@ -199,7 +199,11 @@ disabled = true
 disabled = true
 
 [hostname]
-disabled = true
+ssh_only = true
+format = "[$hostname]($style) "
+style = "bold #f38ba8"  # Catppuccin red — loud "you're not on the laptop" signal
+trim_at = "."  # 'z840.local' → 'z840' if FQDN ever leaks in
+disabled = false
 
 [localip]
 disabled = true
