@@ -9,6 +9,14 @@
   home.homeDirectory = "/home/patrikpersson";
   home.stateVersion = "25.11";
 
+  # Concatenate the z840 Environment section with the shared common rules,
+  # then hand the resulting file to programs.claude-code.memory.source.
+  programs.claude-code.memory.source = pkgs.writeText "CLAUDE.md" (
+    builtins.readFile ./claude/CLAUDE.z840.md
+    + "\n"
+    + builtins.readFile ./claude/CLAUDE.common.md
+  );
+
   programs.git = {
     enable = true;
     settings = {

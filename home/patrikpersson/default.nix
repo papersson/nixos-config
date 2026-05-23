@@ -7,6 +7,14 @@
   home.homeDirectory = "/home/patrikpersson";
   home.stateVersion = "25.11";
 
+  # Concatenate the t14 Environment section with the shared common rules,
+  # then hand the resulting file to programs.claude-code.memory.source.
+  programs.claude-code.memory.source = pkgs.writeText "CLAUDE.md" (
+    builtins.readFile ./claude/CLAUDE.t14.md
+    + "\n"
+    + builtins.readFile ./claude/CLAUDE.common.md
+  );
+
   # SSH private key materialised from sops-encrypted secrets/t14.yaml.
   # The user's age key (~/.config/sops/age/keys.txt, derived from this
   # same SSH key via ssh-to-age) is the decryption key. Bootstrap chicken-

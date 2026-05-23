@@ -1,20 +1,10 @@
-# CLAUDE.md
-
-## Environment
-
-- ThinkPad T14 Gen 4 Intel, NixOS 25.11 (Xantusia), kernel `pkgs.linuxPackages_latest`
-- User: `patrikpersson`. Shell: `zsh`. Prompt: starship. Jumps: zoxide.
-- Desktop: Hyprland on Wayland (greetd + tuigreet as the login manager). Terminal: Ghostty. Status bar: waybar; notifications: mako; wallpaper: hyprpaper.
-- Hyprland keybinds + compositor settings live in `/etc/nixos/home/patrikpersson/hyprland.nix`; the rest of the shell (bar, notifications, wallpaper, lock/idle, OSD, clipboard) in `desktop-shell.nix` beside it. When asked "how do I do X in Hyprland" (keybinds, workflows, what a shortcut does), read that file first — the config is customised, don't answer from upstream defaults.
-- System config: flake at `/etc/nixos`. User-writable for edits; rebuilds need sudo.
-
 ## NixOS rules
 
-**System and user packages live in Nix.** Never suggest `apt`, `dnf`, `pip install --user`, `npm install -g`, or `brew install` — none of those are how this machine works. To add a package: edit `/etc/nixos`, rebuild.
+**System and user packages live in Nix.** Never suggest `apt`, `dnf`, `pip install --user`, `npm install -g`, or `brew install` — none of those are how this machine works. To add a package: edit the flake, rebuild.
 
 **Prefer typed modules over config-file drops.** If `programs.X` exists in NixOS or home-manager, use it. Don't write a `home.file` symlink when a real module covers the option. Option search: <https://search.nixos.org/options>, <https://home-manager-options.extranix.com/>.
 
-**Don't manage truly-mutable state via Nix.** Caches and files an app rewrites at runtime (e.g. `~/.claude.json` — OAuth, onboarding flags) can't be symlinked into the read-only nix store. But config an app merely *offers* a UI for (e.g. `~/.claude/settings.json`) can be nix-managed if you accept that in-app edits won't persist — `/etc/nixos` does exactly this via `programs.claude-code`.
+**Don't manage truly-mutable state via Nix.** Caches and files an app rewrites at runtime (e.g. `~/.claude.json` — OAuth, onboarding flags) can't be symlinked into the read-only nix store. But config an app merely *offers* a UI for (e.g. `~/.claude/settings.json`) can be nix-managed if you accept that in-app edits won't persist — the flake does exactly this via `programs.claude-code`.
 
 **When suggesting tools, give the Nix path.** Add to the flake and rebuild for persistence; `nix shell nixpkgs#<name>` for one-offs; a per-project `devShell` for development environments (see the devShell rule below).
 
@@ -22,7 +12,7 @@
 
 **Rebuilds need sudo — Claude can't run them.** Hand off via `! nh os switch` (works from any directory, includes closure diffs). The long-form `sudo nixos-rebuild switch ...` lives in the project's CLAUDE.md if you need it.
 
-**Secrets are sops-encrypted, not plaintext in the flake.** Never put credentials directly into Nix values, and never `builtins.readFile` a sops path — both land secrets in the world-readable nix store. When working in `/etc/nixos`, see that repo's CLAUDE.md for the YAML filename, edit commands, and rotation steps.
+**Secrets are sops-encrypted, not plaintext in the flake.** Never put credentials directly into Nix values, and never `builtins.readFile` a sops path — both land secrets in the world-readable nix store. When working in the nixos-config repo, see its CLAUDE.md for the YAML filename, edit commands, and rotation steps.
 
 ## Working style
 
@@ -84,7 +74,7 @@ When a draft is adopted or rejected, fold the outcome into the CLAUDE.md at the 
 
 Keep this file current when the environment shifts. Triggers worth an edit: change to shell / prompt / terminal / desktop, new daily-driver tool added (e.g. `nh`, `direnv`, `sops`), change to how rebuilds happen, change to where packages come from. Skip the trivial — single package additions and version bumps stay out and live in commit messages instead. Project-specific facts go in the project's CLAUDE.md, subsystem-specific facts go deeper; see the Hierarchy section above for placement.
 
-**Editing this file:** `~/.claude/CLAUDE.md` is a symlink into the read-only nix store — it's nix-managed via `programs.claude-code` (`memory.source` in `/etc/nixos/home/patrikpersson/claude.nix`). Don't write through the symlink; it will fail. Edit the real source at `/etc/nixos/home/patrikpersson/claude/CLAUDE.md`, then rebuild for the change to take effect. Same applies to any other path that resolves into `/nix/store` — `readlink -f` first if a write is refused.
+**Editing this file:** `~/.claude/CLAUDE.md` is a symlink into the read-only nix store — it's nix-managed via `programs.claude-code`. The file is concatenated at build time from a per-host `home/patrikpersson/claude/CLAUDE.<hostname>.md` (the Environment section at the top) and the shared `home/patrikpersson/claude/CLAUDE.common.md` (the universal sections below). Don't write through the symlink; edit the appropriate source file in the flake, then rebuild. Same applies to any other path that resolves into `/nix/store` — `readlink -f` first if a write is refused.
 
 ## References
 

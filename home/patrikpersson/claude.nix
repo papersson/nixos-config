@@ -18,13 +18,13 @@
   programs.claude-code = {
     enable = true;
 
-    # claude-code itself is a system package (hosts/t14/default.nix);
+    # claude-code itself is a system package (hosts/<host>/default.nix);
     # this module manages config files only, not the binary.
     package = null;
 
-    # CLAUDE.md global instructions — typed equivalent of the old
-    # `home.file.".claude/CLAUDE.md"`.
-    memory.source = ./claude/CLAUDE.md;
+    # `memory.source` is set per-host (default.nix, server.nix) — each
+    # host concatenates its own `CLAUDE.<host>.md` (Environment section)
+    # with the shared `CLAUDE.common.md` (universal rules).
 
     settings = {
       # ── Shared base (identical on every machine) ──────────────────
@@ -121,8 +121,9 @@
         ];
       };
 
-      # ── t14-specific ──────────────────────────────────────────────
-      # Linux desktop notifications via mako (macOS uses terminal-notifier).
+      # Desktop notifications via notify-send (libnotify). On a headless
+      # box without a notification daemon, the command is a no-op rather
+      # than an error, so this is safe to share across hosts.
       hooks.Notification = [
         {
           matcher = "";
@@ -134,7 +135,7 @@
           ];
         }
       ];
-      # Fullscreen TUI suits the tiling-WM workflow on this machine.
+      # Fullscreen TUI — preferred regardless of host.
       tui = "fullscreen";
     };
   };
