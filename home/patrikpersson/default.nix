@@ -31,6 +31,14 @@
     };
   };
 
+  programs.ssh = {
+    enable = true;
+    matchBlocks.server = {
+      hostname = "192.168.1.10";
+      user = "patrikpersson";
+    };
+  };
+
   # Zen browser (Firefox fork) as the daily driver — replaces the system
   # programs.firefox. setAsDefaultBrowser wires xdg.mimeApps for the
   # http(s)/file schemes and exports $BROWSER, so links from mail and
