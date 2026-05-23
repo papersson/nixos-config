@@ -20,6 +20,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Declarative disk partitioning. Consumed standalone via
+    # `diskoConfigurations.z840` (boot SSD only); deliberately NOT imported into
+    # the running z840 config, so `disko --mode destroy,format` can never be
+    # pointed at the tank pool. See hosts/z840/disko.nix and docs/runbooks/.
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # Secure Boot with our own keys. Step 1 only adds the input so `sbctl`
     # can land via systemPackages; the module is imported in step 5, after
     # keys are created and enrolled in firmware.
@@ -136,5 +145,11 @@
         }
       ];
     };
+
+    # Standalone boot-SSD layout for fresh installs / nixos-anywhere. Not wired
+    # into nixosConfigurations.z840 (the running box already boots off its
+    # by-uuid config); run via `nix run github:nix-community/disko -- --flake
+    # .#z840 --mode ...` against a target disk.
+    diskoConfigurations.z840 = import ./hosts/z840/disko.nix;
   };
 }

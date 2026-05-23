@@ -124,11 +124,14 @@ See the secrets conventions in `CLAUDE.md` and `.sops.yaml` for the recipient li
 
 ## TODO to make this real
 
-1. Write `hosts/z840/disko.nix` from its current `hardware-configuration.nix` (easy:
-   ext4 + vfat, no LUKS). Scope it to the **boot SSD only**: the `tank` pool stays out
-   of it (see "Data pools are import-only" above). Expose `diskoConfigurations.z840`.
-   Validate by diffing generated `fileSystems` against the existing file. This also
-   unlocks Path B.
+1. **Done.** `hosts/z840/disko.nix` exists (boot SSD only: ext4 + vfat, real NVMe
+   by-id) and is wired as a standalone `diskoConfigurations.z840` output that does not
+   touch the running box. The `tank` pool stays out of it (see "Data pools are
+   import-only" above). Remaining for full adoption / Path B: import
+   `disko.nixosModules.disko` + `./disko.nix` into `nixosConfigurations.z840` and delete
+   the `fileSystems`/`swapDevices` lines from `hardware-configuration.nix`, so disko
+   owns the layout end to end (nixos-anywhere builds `diskoScript` from the system, so
+   it needs this form).
 2. Write `hosts/t14/disko.nix` (LUKS2 + btrfs subvolumes) once the z840 spec has
    proven the workflow.
 3. Optional: adopt nixos-facter (`report.json` per host) to replace the detection half
