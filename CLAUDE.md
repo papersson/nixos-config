@@ -15,7 +15,7 @@ Flake configuring two hosts for a single user (`patrikpersson`): the `t14` Think
 - `home/patrikpersson/claude/` — Claude Code global `~/.claude/CLAUDE.md` source. Split into `CLAUDE.common.md` (universal rules, shared across hosts) and per-host `CLAUDE.<host>.md` (Environment section). Each host config concatenates the two via `pkgs.writeText`.
 - `.sops.yaml` — age recipient list (user + host) and creation rules
 - `secrets/` — encrypted YAML (`t14.yaml` holds Wi-Fi PSK + user SSH key). z840 has no sops secrets yet.
-- `docs/` — longform notes and drafts; not loaded by the flake
+- `docs/` — longform notes; not loaded by the flake. `docs/drafts/` holds open architectural questions; `docs/runbooks/` holds host-agnostic procedures for rare, high-stakes operations (bare-metal reinstall, recovery) plus a `concepts.md` primer.
 - `reference.md` — full hardware/OS setup guide and 10-item gotcha catalogue for the T14
 
 ## Workflow
@@ -46,4 +46,5 @@ Flake configuring two hosts for a single user (`patrikpersson`): the `t14` Think
 - `handover.md` — current session-to-session state and roadmap
 - `reference.md` — full setup rationale, BIOS settings, install procedure, 10 known T14-on-NixOS gotchas
 - `docs/drafts/` — open architectural questions (dotfiles-vs-Nix integration)
+- `docs/runbooks/` — rare high-stakes procedures (bare-metal reinstall) + `concepts.md` primer on disko/facter/nixos-anywhere
 - Auto-memory: `~/.claude/projects/<cwd-encoded>/memory/` — rolling project state across sessions, keyed by the cwd Claude Code was invoked from
