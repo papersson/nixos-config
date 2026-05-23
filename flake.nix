@@ -103,5 +103,38 @@
         }
       ];
     };
+
+    nixosConfigurations.z840 = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      specialArgs = { inherit inputs; };
+      modules = [
+        ./hosts/z840
+        nixos-hardware.nixosModules.common-pc
+        nixos-hardware.nixosModules.common-pc-ssd
+        nixos-hardware.nixosModules.common-cpu-intel
+        sops-nix.nixosModules.sops
+        home-manager.nixosModules.home-manager
+        {
+          home-manager.useGlobalPkgs = true;
+          home-manager.useUserPackages = true;
+          home-manager.backupFileExtension = "hm-bak";
+          home-manager.sharedModules = [
+            sops-nix.homeManagerModules.sops
+            nixvim.homeModules.nixvim
+          ];
+          home-manager.users.patrikpersson = import ./home/patrikpersson/server.nix;
+        }
+        {
+          nixpkgs.overlays = [
+            (final: _prev: {
+              unstable = import nixpkgs-unstable {
+                inherit (final.stdenv.hostPlatform) system;
+                config.allowUnfree = true;
+              };
+            })
+          ];
+        }
+      ];
+    };
   };
 }
