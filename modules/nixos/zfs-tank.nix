@@ -17,6 +17,33 @@
   # Import the tank pool at boot.
   boot.zfs.extraPools = [ "tank" ];
 
+  # SCT Error Recovery Control: tell each tank drive to give up on a bad
+  # sector after 7.0 seconds and return an error to the kernel, instead of
+  # hanging the SATA bus for 30+ seconds trying internal recovery. ZFS
+  # reconstructs the data from raidz2 parity in milliseconds; we want the
+  # drive to fail fast so ZFS can do its job. Setting is volatile — drives
+  # reset to "Disabled" on every power cycle — so this runs once at boot,
+  # before the pool is imported. wwn list mirrors the runbook bay table; if
+  # a drive is replaced, update it here too.
+  systemd.services.tank-drive-erc = {
+    description = "Set SCT ERC=7.0s on tank drives (resets on power cycle)";
+    wantedBy = [ "zfs-import.target" ];
+    before = [ "zfs-import.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    path = [ pkgs.smartmontools ];
+    script = ''
+      for d in /dev/disk/by-id/wwn-0x5000cca2a1e7ade9 \
+               /dev/disk/by-id/wwn-0x5000cca2a1e805a2 \
+               /dev/disk/by-id/wwn-0x5000cca2a1e7c8f3 \
+               /dev/disk/by-id/wwn-0x5000cca284eb772f; do
+        smartctl -l scterc,70,70 "$d"
+      done
+    '';
+  };
+
   # Each dataset has `mountpoint=legacy` set during pool creation (see the
   # runbook). NixOS owns the mount points so they're declared in the flake
   # and systemd can derive service-to-mount dependencies automatically.
