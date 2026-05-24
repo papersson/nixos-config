@@ -74,6 +74,7 @@
     htop
     pciutils
     usbutils
+    smartmontools
     pkgs.unstable.claude-code
   ];
 

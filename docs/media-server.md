@@ -35,7 +35,7 @@ Why this is the first service:
 
 Before any service deploys, the storage tier must exist:
 
-- **HDD burn-in** on the 4× HC550 16 TB drives. Run `smartctl -t long /dev/sd{b,c,d,e}` in parallel (~18–30h each). Confirm zero reallocated sectors / pending sectors after. If any drive flags, RMA before pool creation.
+- **HDD burn-in** on the 4× HC550 16 TB drives. Run `smartctl -t long /dev/sd{a,b,c,d}` in parallel (~18–30h each). Confirm zero reallocated sectors / pending sectors after. If any drive flags, RMA before pool creation.
 - **ZFS pool `tank`** — raidz1 across the four drives. `ashift=12`, `recordsize=1M` set on the `tank/media` dataset for bulk sequential reads (default 128K kept on `tank/jellyfin` for the SQLite config).
 - **Datasets**:
   - `tank/media/movies` — Radarr root
