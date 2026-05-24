@@ -2,7 +2,12 @@
 
 Spec doc for the first major homelab milestone: a self-hosted media server with full automation, replacing the Netflix-style consumption pattern. Scope is movies and TV (music / photos deferred to separate stacks later).
 
-Status: planning. No code on disk yet. This document is the contract for what gets built.
+Status (2026-05-24):
+
+- **Phase 0 (storage foundation)** — complete. 4× HC550 burned in clean (zero reallocated/pending/uncorrectable sectors across all four). `tank` pool created as raidz2 (chosen over raidz1 — see Decisions table), 28.1 TiB usable, `ashift=12`, dataset-level `compression=lz4 atime=off xattr=sa acltype=posixacl normalization=formD dnodesize=auto`. Declarative side at `modules/nixos/zfs-tank.nix`: import-only, `fileSystems` entries for all seven datasets (mountpoint=legacy), sanoid snapshot policy per spec, monthly `services.zfs.autoScrub`, and a `tank-drive-erc.service` that sets SCT ERC=7.0s on every boot (volatile setting). Imperative side at `docs/runbooks/zfs-pool-creation.md` (executed once; never re-run).
+- **Phase 1 (Jellyfin LAN-only)** — software complete. `services.jellyfin` in `hosts/z840/default.nix` with `dataDir=/tank/jellyfin/config`, `cacheDir=/tank/jellyfin/cache`, `openFirewall=true`. Movies + Shows libraries configured (Country/Region: United States; metadata refresh: every 30 days; no Trickplay / Chapter Images). Test movie indexed with TMDB metadata. **Step 4 pending**: 4K direct-play test on actual TV client — blocked on real 4K HEVC content (Phase 2 provides this automatically) and a TV client (Apple TV / Shield / smart TV).
+- **Phase 2 (*arr stack via nixarr)** — not started. Plan: sops bootstrap on z840 → Mullvad signup (user) → `nixarr` flake input + VPN namespace → Sonarr / Radarr / Prowlarr / Bazarr / qBittorrent → validate with 2–3 public trackers. Usenet (Phase 2.5) deferred until public-tracker validation passes.
+- **Phases 3, 4** — not started.
 
 ## Context
 
