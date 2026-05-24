@@ -89,5 +89,25 @@
     };
   };
 
+  # Jellyfin media server — Phase 1 of docs/media-server.md.
+  #
+  # Naming caveat: the dataset is `tank/jellyfin/config` (per the spec) but
+  # what actually lives there is Jellyfin's *data* — the SQLite library DB,
+  # plugin install dirs, user images, metadata cache. So `dataDir` (not
+  # `configDir`) is what we point at the snapshot-protected dataset.
+  # `configDir` (XML config) defaults to `${dataDir}/config` which is fine.
+  # `cacheDir` is regenerable thumbnails — its own dataset, no snapshots.
+  #
+  # No hardwareAcceleration: the M5000 GPU can't decode HEVC, and remote
+  # playback uses the 1080p arm of the dual-quality library instead of
+  # transcoding. openFirewall opens 8096/8920 TCP + 1900/7359 UDP (LAN
+  # discovery) — phase 4 will switch to a Caddy reverse proxy on 80/443.
+  services.jellyfin = {
+    enable = true;
+    openFirewall = true;
+    dataDir = "/tank/jellyfin/config";
+    cacheDir = "/tank/jellyfin/cache";
+  };
+
   system.stateVersion = "25.11";
 }
