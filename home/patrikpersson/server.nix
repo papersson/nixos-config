@@ -127,6 +127,8 @@
     config.global.hide_env_diff = true;
   };
 
+  programs.tmux.enable = true;
+
   home.sessionVariables = {
     CARAPACE_BRIDGES = "zsh,fish,bash,inshellisense";
   };
@@ -138,6 +140,5 @@
     eza
     jq
     nerd-fonts.jetbrains-mono
-    tmux
   ];
 }
