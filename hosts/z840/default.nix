@@ -3,15 +3,12 @@
 {
   imports = [
     ./hardware-configuration.nix
+    ../../modules/nixos/zfs-tank.nix
   ];
 
   # Standard systemd-boot — no Secure Boot / Lanzaboote on this workstation.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-
-  # ZFS support
-  boot.supportedFilesystems = [ "zfs" ];
-  boot.zfs.forceImportRoot = false;
 
   # Redistributable firmware blobs.
   hardware.enableRedistributableFirmware = true;

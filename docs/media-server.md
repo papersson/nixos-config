@@ -10,7 +10,7 @@ Why this is the first service:
 - "Real consequences" principle — media is consumed daily, forcing the lab to work or be abandoned.
 - "Build from components" — every piece (Jellyfin, nixarr, ZFS, Caddy, Tailscale, Mullvad) is independently understandable. No appliance.
 - "Declarative everything" — nixarr provides a NixOS-native module that composes the *arr services; no Docker except as fallback.
-- Storage is the long pole: the 4× HC550 raidz1 pool ("tank") needs to exist before any of the services land. Burn-in time gates everything else.
+- Storage is the long pole: the 4× HC550 raidz2 pool ("tank") needs to exist before any of the services land. Burn-in time gates everything else.
 
 ## Decisions
 
@@ -36,14 +36,14 @@ Why this is the first service:
 Before any service deploys, the storage tier must exist:
 
 - **HDD burn-in** on the 4× HC550 16 TB drives. Run `smartctl -t long /dev/sd{a,b,c,d}` in parallel (~18–30h each). Confirm zero reallocated sectors / pending sectors after. If any drive flags, RMA before pool creation.
-- **ZFS pool `tank`** — raidz1 across the four drives. `ashift=12`, `recordsize=1M` set on the `tank/media` dataset for bulk sequential reads (default 128K kept on `tank/jellyfin` for the SQLite config).
+- **ZFS pool `tank`** — raidz2 across the four drives (chosen over raidz1 because a resilver window on 16 TB drives is ~18–30h, during which raidz1 has zero parity; raidz2 keeps one parity drive during resilver at a 33% capacity cost). `ashift=12`, `recordsize=1M` set on the `tank/media` dataset for bulk sequential reads (default 128K kept on `tank/jellyfin` for the SQLite config).
 - **Datasets**:
   - `tank/media/movies` — Radarr root
   - `tank/media/tv` — Sonarr root
   - `tank/jellyfin/config` — Jellyfin SQLite + plugins (frequent small writes; snapshot target)
   - `tank/jellyfin/cache` — metadata thumbnails (regenerable; snapshots skipped)
   - `tank/downloads` — qBittorrent incomplete + complete dirs (chmod-compatible with Sonarr/Radarr import)
-- **Snapshot policy**: hourly on `tank/jellyfin/config` (kept 24h), daily kept 7d, weekly kept 4w. Media datasets snapshot weekly only (raidz1 already covers drive loss). No offsite backup until phase 2.
+- **Snapshot policy**: hourly on `tank/jellyfin/config` (kept 24h), daily kept 7d, weekly kept 4w. Media datasets snapshot weekly only (raidz2 already covers drive loss). No offsite backup until phase 2.
 
 GPU stays in the box but is not loaded — `hardware.nvidia` is not enabled. M5000 reserved for a future Windows VM via libvirt + PCIe passthrough.
 
@@ -53,7 +53,7 @@ GPU stays in the box but is not loaded — `hardware.nvidia` is not enabled. M50
 
 1. Run `smartctl -t long` on all four HC550s. Wait for completion.
 2. Verify SMART attributes clean. RMA any flagging drive.
-3. Create the pool and datasets as a **one-shot imperative step, documented as a runbook, not a NixOS module**: `zpool create -o ashift=12 tank raidz1 /dev/disk/by-id/...`, then `zfs create tank/media` and the rest (datasets above). Pool creation is deliberately never declarative. Declaring it is Option B's footgun, where a `--mode destroy,format` run wipes 48 TB. The pool is created exactly once and import-only forever after.
+3. Create the pool and datasets as a **one-shot imperative step, documented as a runbook, not a NixOS module** (see `docs/runbooks/zfs-pool-creation.md`): `zpool create -o ashift=12 tank raidz2 /dev/disk/by-id/...`, then `zfs create tank/media` and the rest (datasets above). Pool creation is deliberately never declarative. Declaring it is Option B's footgun, where a `--mode destroy,format` run wipes 28 TB. The pool is created exactly once and import-only forever after.
 4. Declare only the **import-only, idempotent** half in a new `modules/nixos/zfs-tank.nix` imported from `hosts/z840/default.nix`: ZFS support, `boot.zfs.extraPools = [ "tank" ]`, `fileSystems` mount points for the datasets, and snapshot policy (`services.sanoid` or similar). Safe to re-run on every reinstall. It never creates the pool.
 5. Verify pool: `zpool status`, `zfs list`, write a test file, confirm `recordsize=1M` on `tank/media`.
 

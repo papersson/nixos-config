@@ -25,9 +25,9 @@ Personal homelab built around this single strong server, replacing common SaaS d
 - **GPU**: Quadro M5000 8 GB (for transcode / passthrough later)
 - **PSU**: 1125 W
 - **Boot disk**: 512 GB Kingston NVMe on motherboard M.2
-- **Bulk storage**: 4× WD HC550 16 TB SATA (enterprise CMR) — raidz1 planned → ~48 TB usable as pool `tank`
+- **Bulk storage**: 4× WD HC550 16 TB SATA (enterprise CMR) — raidz2 planned → ~28 TB usable as pool `tank`
 - **Fast tier (planned)**: 2× Kingston Fury Renegade 2 TB NVMe on PCIe adapters → mirror, pool `fast`
-- **HBA**: built-in LSI SAS2308-IR in pass-through (drives appear as raw `sdb`–`sde`)
+- **HBA**: built-in LSI SAS2308-IR in pass-through (drives appear as raw `sda`–`sdd`; boot NVMe is on the motherboard M.2, not on the HBA)
 - **NIC**: 2× 1 GbE on-board; Mellanox ConnectX-3 dual SFP+ planned for 10G
 
 ### Other hardware (not yet deployed)
@@ -39,7 +39,7 @@ Personal homelab built around this single strong server, replacing common SaaS d
 ### Architecture
 
 - **Virtualization**: libvirt + KVM as the default for full VMs (lab Rocky/Debian guests for the identity stack). NixOS containers (`containers.*`) for lightweight Nix-managed services. Docker via `virtualisation.oci-containers` reserved as an escape hatch for upstream containers without good Nix equivalents.
-- **Storage**: two ZFS pools planned. `tank` (raidz1 on 4× HC550, `recordsize=1M` for media). `fast` (mirror on 2× NVMe, default recordsize for VM disks / databases).
+- **Storage**: two ZFS pools planned. `tank` (raidz2 on 4× HC550, `recordsize=1M` for media). `fast` (mirror on 2× NVMe, default recordsize for VM disks / databases).
 - **Network (future)**: Telia ISP gateway → Protectli (OPNsense) → MikroTik trunk → 5 VLANs (mgmt, servers, lab, IoT, guest). WireGuard for remote access.
 - **Identity (future)**: standalone MIT Kerberos KDC + OpenLDAP/389-ds + BIND + step-ca, with SSSD on Linux clients. Lab VMs join the realm; bare-metal hosts stay independent.
 

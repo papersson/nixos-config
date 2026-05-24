@@ -31,7 +31,7 @@ disko work needs to produce.
 
 ## Data pools are import-only, never reformatted
 
-The z840 will gain a separate ZFS pool `tank` (4x HC550 16 TB raidz1, ~48 TB) for the
+The z840 will gain a separate ZFS pool `tank` (4x HC550 16 TB raidz2, ~28 TB) for the
 media library (see `media-server.md`). It is not part of any host's OS disk, and the
 single most important rule of a z840 reinstall is:
 
