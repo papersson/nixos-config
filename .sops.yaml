@@ -1,9 +1,15 @@
 keys:
   - &user_persson age1qd8yadluk9w8kueu987qw2xy4rqcq08gfv36ct2pqvycdg5eedtqepnf76
   - &host_t14     age1w60sdmlg58v4edkvclfsw0ptr6mhesdgxedptprlsuyt6gavhv7sw7z4va
+  - &host_z840    age1hz7auxvx0xhj8kys94nv3l70hqjwe9q9tnzur803l8w6u3ua0e8qu6c60e
 creation_rules:
   - path_regex: secrets/t14\.yaml$
     key_groups:
       - age:
           - *user_persson
           - *host_t14
+  - path_regex: secrets/z840\.yaml$
+    key_groups:
+      - age:
+          - *user_persson
+          - *host_z840

@@ -140,5 +140,7 @@
     eza
     jq
     nerd-fonts.jetbrains-mono
+    sops
+    ssh-to-age
   ];
 }

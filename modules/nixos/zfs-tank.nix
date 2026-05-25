@@ -2,6 +2,11 @@
 
 # Declarative, import-only half of the bulk-storage `tank` pool.
 #
+# The pool is general-purpose; media is the first tenant, not the only one.
+# New workloads add a `fileSystems` entry below plus (if they need snapshots)
+# a sanoid template + dataset entry. See `docs/storage.md` for the full
+# dataset-creation pattern and quota guidance.
+#
 # The pool itself is created exactly once, imperatively, by
 # `docs/runbooks/zfs-pool-creation.md`. This module never creates or
 # modifies the pool — it only imports it, declares mount points, and

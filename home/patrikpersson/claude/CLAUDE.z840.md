@@ -39,7 +39,7 @@ Personal homelab built around this single strong server, replacing common SaaS d
 ### Architecture
 
 - **Virtualization**: libvirt + KVM as the default for full VMs (lab Rocky/Debian guests for the identity stack). NixOS containers (`containers.*`) for lightweight Nix-managed services. Docker via `virtualisation.oci-containers` reserved as an escape hatch for upstream containers without good Nix equivalents.
-- **Storage**: two ZFS pools planned. `tank` (raidz2 on 4× HC550, `recordsize=1M` for media). `fast` (mirror on 2× NVMe, default recordsize for VM disks / databases).
+- **Storage**: two ZFS pools planned. `tank` (raidz2 on 4× HC550, general-purpose; `recordsize=1M` only on the `tank/media` dataset, other datasets keep the 128 KiB pool default). `fast` (mirror on 2× NVMe, default recordsize for VM disks / databases). `tank` is the bulk pool — media is the first tenant, not the only one; see `docs/storage.md` for dataset-creation conventions.
 - **Network (future)**: Telia ISP gateway → Protectli (OPNsense) → MikroTik trunk → 5 VLANs (mgmt, servers, lab, IoT, guest). WireGuard for remote access.
 - **Identity (future)**: standalone MIT Kerberos KDC + OpenLDAP/389-ds + BIND + step-ca, with SSSD on Linux clients. Lab VMs join the realm; bare-metal hosts stay independent.
 

@@ -47,4 +47,6 @@ Flake configuring two hosts for a single user (`patrikpersson`): the `t14` Think
 - `reference.md` — full setup rationale, BIOS settings, install procedure, 10 known T14-on-NixOS gotchas
 - `docs/drafts/` — open architectural questions (dotfiles-vs-Nix integration)
 - `docs/runbooks/` — rare high-stakes procedures (bare-metal reinstall) + `concepts.md` primer on disko/facter/nixos-anywhere
+- `docs/media-server.md` — z840 media-server spec (per-phase status, decisions, runbook pointers)
+- `docs/storage.md` — z840 pool layout, dataset conventions, gotchas for adding non-media workloads to `tank`
 - Auto-memory: `~/.claude/projects/<cwd-encoded>/memory/` — rolling project state across sessions, keyed by the cwd Claude Code was invoked from
