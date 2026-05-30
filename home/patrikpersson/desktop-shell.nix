@@ -356,6 +356,45 @@ in
   # wpctl calls. Runs swayosd-server as a user service.
   services.swayosd.enable = true;
 
+  # swayosd doesn't have a style option on the HM module, so write the
+  # GTK CSS directly. Matches the waybar/mako visual language: rounded
+  # surface_container pill with a primary-coloured progress fill.
+  xdg.configFile."swayosd/style.css".text = ''
+    window#osd {
+      background-color: ${css "surface_container"};
+      border: 1px solid ${css "outline_variant"};
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: ${css "on_surface"};
+    }
+
+    window#osd image {
+      color: ${css "on_surface"};
+      min-height: 24px;
+      min-width: 24px;
+    }
+
+    window#osd label {
+      color: ${css "on_surface"};
+    }
+
+    window#osd progressbar {
+      min-height: 8px;
+    }
+    window#osd progressbar trough {
+      background-color: ${css "surface_container_high"};
+      border: none;
+      border-radius: 4px;
+      min-height: 8px;
+    }
+    window#osd progressbar progress {
+      background-color: ${css "primary"};
+      border: none;
+      border-radius: 4px;
+      min-height: 8px;
+    }
+  '';
+
   # Clipboard history. Two `wl-paste --watch` user services record text
   # and image copies; `$mod+C` (hyprland.nix) lists them through wofi.
   services.cliphist.enable = true;
