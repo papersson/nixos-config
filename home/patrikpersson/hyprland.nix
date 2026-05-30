@@ -166,6 +166,17 @@
         animate_mouse_windowdragging = true;
       };
 
+      # Layer-shell rules. waybar is the bar's wl-layer namespace; blur
+       # makes the windows behind the floating bar diffuse through it
+       # (paired with the alpha(surface, 0.72) background in
+       # desktop-shell.nix's waybar style). ignorezero stops the blur
+       # bleeding past the rounded corners — the corner area is
+       # fully-transparent CSS, ignorezero treats it as no-blur.
+      layerrule = [
+        "blur, waybar"
+        "ignorezero, waybar"
+      ];
+
       # Window rules. v2 form. Float ad-hoc dialogs and pin video PiP.
       windowrulev2 = [
         "float, class:^(pavucontrol)$"

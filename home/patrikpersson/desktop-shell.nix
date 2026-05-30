@@ -188,9 +188,12 @@ in
       }
 
       /* Floating rounded panel — margins in settings.mainBar lift it
-         off the screen edges, border-radius rounds it. */
+         off the screen edges, border-radius rounds it. The alpha() blend
+         on the background is paired with a Hyprland `layerrule = blur,
+         waybar` (hyprland.nix) so windows behind the bar diffuse through
+         it instead of just showing semi-transparent surface colour. */
       window#waybar {
-        background: ${css "surface"};
+        background: alpha(${css "surface"}, 0.72);
         border: 1px solid ${css "outline_variant"};
         border-radius: 12px;
         color: ${css "on_surface"};
