@@ -8,6 +8,13 @@
     package = null;
     portalPackage = null;
 
+    # Hyprland plugins. Built against pkgs.hyprland in the same nixpkgs
+    # as the running compositor, so the ABI matches. hyprpm is not used —
+    # it rebuilds plugins at runtime against the wrong glibc on NixOS.
+    plugins = with pkgs.hyprlandPlugins; [
+      hyprexpo   # workspace overview grid, bound to $mod+grave below
+    ];
+
     # Propagate the full session env (DBUS_SESSION_BUS_ADDRESS,
     # WAYLAND_DISPLAY, XDG_*) into systemd user units. Without this,
     # waybar / mako / hyprpaper start with a stale env and misbehave.
@@ -166,6 +173,18 @@
         animate_mouse_windowdragging = true;
       };
 
+      # Plugin configuration. hyprexpo: workspace overview, fired by the
+      # $mod+grave keybind below. 3-column grid centred on the active
+      # workspace; gesture support left off because the 3-finger
+      # horizontal swipe is already mapped to workspace switching.
+      plugin.hyprexpo = {
+        columns = 3;
+        gap_size = 5;
+        bg_col = "rgb(0a0a0a)";
+        workspace_method = "center current";
+        enable_gesture = false;
+      };
+
       # Layer-shell rules. waybar is the bar's wl-layer namespace; blur
        # makes the windows behind the floating bar diffuse through it
        # (paired with the alpha(surface, 0.72) background in
@@ -219,6 +238,10 @@
         "$mod, Return, exec, ghostty"
         "$mod, B,      exec, zen-beta"
         "$mod, D,      exec, wofi --show drun"
+        # Workspace overview (hyprexpo). Super+grave toggles a tiled
+        # preview of all workspaces; click one to focus. Free from
+        # collisions — Ctrl+grave is Ghostty's quick-terminal toggle.
+        "$mod, grave,  hyprexpo:expo, toggle"
         # Clipboard history picker — cliphist's two watch services
         # (desktop-shell.nix) feed this list; decode + copy on select.
         "$mod, C,      exec, cliphist list | wofi --dmenu | cliphist decode | wl-copy"
