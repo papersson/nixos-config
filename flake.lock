@@ -336,6 +336,7 @@
         "nixpkgs-unstable": "nixpkgs-unstable",
         "nixvim": "nixvim",
         "sops-nix": "sops-nix",
+        "worklog": "worklog",
         "zen-browser": "zen-browser"
       }
     },
@@ -422,6 +423,26 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "worklog": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1780132595,
+        "narHash": "sha256-w8ggiN7Ihp6/E7NnX5I3haI6aIu1SSUJUaczhLBT56g=",
+        "owner": "papersson",
+        "repo": "worklog",
+        "rev": "ff06ad83245646c9038b7e58e87f1484a7a15a4c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "papersson",
+        "repo": "worklog",
         "type": "github"
       }
     },

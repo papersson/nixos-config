@@ -1,4 +1,4 @@
-{ ... }:
+{ pkgs, inputs, ... }:
 
 # Claude Code configuration, managed declaratively via home-manager's
 # `programs.claude-code` module.
@@ -146,4 +146,12 @@
     source = ./claude/statusline.sh;
     executable = true;
   };
+
+  # worklog — the `worklog` CLI (DuckDB-indexed query over Claude Code
+  # transcripts) plus its driving subagent. Native nix consumption: a
+  # binary on PATH and the agent file, no plugin/marketplace/hook. The
+  # script reads WORKLOG_DB / WORKLOG_DUCKDB_EXTENSION_DIR, both set by
+  # the flake's wrapper to a writable XDG cache.
+  home.packages = [ inputs.worklog.packages.${pkgs.system}.worklog ];
+  home.file.".claude/agents/worklog.md".source = "${inputs.worklog}/agents/worklog.md";
 }

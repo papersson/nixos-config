@@ -66,6 +66,14 @@
         home-manager.follows = "home-manager";
       };
     };
+
+    # worklog — query Claude Code transcripts as a work history. Consumed
+    # natively (home.packages + the agent file), not via the plugin system;
+    # follows our nixpkgs so duckdb comes from the same 25.11 set.
+    worklog = {
+      url = "github:papersson/worklog";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix, lanzaboote, nixvim, matugen, zen-browser, ... }@inputs: {
@@ -85,6 +93,9 @@
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "hm-bak";
+          # Thread flake inputs into home modules (claude.nix consumes
+          # inputs.worklog). NixOS specialArgs don't reach HM modules.
+          home-manager.extraSpecialArgs = { inherit inputs; };
           home-manager.sharedModules = [
             sops-nix.homeManagerModules.sops
             nixvim.homeModules.nixvim
@@ -127,6 +138,9 @@
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "hm-bak";
+          # Thread flake inputs into home modules (claude.nix consumes
+          # inputs.worklog). NixOS specialArgs don't reach HM modules.
+          home-manager.extraSpecialArgs = { inherit inputs; };
           home-manager.sharedModules = [
             sops-nix.homeManagerModules.sops
             nixvim.homeModules.nixvim
