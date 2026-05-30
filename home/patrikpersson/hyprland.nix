@@ -1,5 +1,11 @@
 { config, pkgs, lib, ... }:
 
+let
+  # Same matugen accessor pattern as desktop-shell.nix / default.nix /
+  # theming.nix — used here to colour the hyprtrails plugin from the
+  # wallpaper-derived palette.
+  css = role: config.programs.matugen.theme.colors.${role}.default.color;
+in
 {
   wayland.windowManager.hyprland = {
     # The system module installs Hyprland + portal. package/portalPackage
@@ -12,7 +18,8 @@
     # as the running compositor, so the ABI matches. hyprpm is not used —
     # it rebuilds plugins at runtime against the wrong glibc on NixOS.
     plugins = with pkgs.hyprlandPlugins; [
-      hyprexpo   # workspace overview grid, bound to $mod+grave below
+      hyprexpo    # workspace overview grid, bound to $mod+grave below
+      hyprtrails  # subtle motion trail behind moving windows
     ];
 
     # Propagate the full session env (DBUS_SESSION_BUS_ADDRESS,
@@ -173,16 +180,25 @@
         animate_mouse_windowdragging = true;
       };
 
-      # Plugin configuration. hyprexpo: workspace overview, fired by the
-      # $mod+grave keybind below. 3-column grid centred on the active
-      # workspace; gesture support left off because the 3-finger
-      # horizontal swipe is already mapped to workspace switching.
-      plugin.hyprexpo = {
-        columns = 3;
-        gap_size = 5;
-        bg_col = "rgb(0a0a0a)";
-        workspace_method = "center current";
-        enable_gesture = false;
+      # Plugin configuration.
+      plugin = {
+        # hyprexpo: workspace overview, fired by the $mod+grave keybind
+        # below. 3-column grid centred on the active workspace; gesture
+        # support left off because the 3-finger horizontal swipe is
+        # already mapped to workspace switching.
+        hyprexpo = {
+          columns = 3;
+          gap_size = 5;
+          bg_col = "rgb(0a0a0a)";
+          workspace_method = "center current";
+          enable_gesture = false;
+        };
+        # hyprtrails: motion trail behind moving windows. Coral trail
+        # (matugen primary + 53% alpha) — visible during a drag/resize,
+        # invisible at rest. Defaults for the bezier smoothness are fine.
+        hyprtrails = {
+          color = "rgba(${lib.removePrefix "#" (css "primary")}88)";
+        };
       };
 
       # Layer-shell rules. waybar is the bar's wl-layer namespace; blur
