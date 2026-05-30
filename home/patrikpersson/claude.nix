@@ -53,7 +53,7 @@
       };
 
       permissions = {
-        defaultMode = "default";
+        defaultMode = "acceptEdits";
         deny = [ ];
         allow = [
           "Read(**)"
