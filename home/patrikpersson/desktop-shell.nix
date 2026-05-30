@@ -349,6 +349,20 @@ in
           halign = "center";
           valign = "center";
         }
+        # MPRIS now-playing line. playerctl exits non-zero with no
+        # players, leaving stdout empty → hyprlock renders nothing.
+        # 5-second poll is cheap on the locked screen. playerctl ships
+        # from the thinkpad-t14 module so it's already in PATH.
+        {
+          monitor = "";
+          text = ''cmd[update:5000] playerctl metadata --format "{{ artist }} — {{ title }}" 2>/dev/null'';
+          font_size = 14;
+          font_family = "Noto Sans";
+          color = paletteColor "on_surface_variant";
+          position = "0, 80";
+          halign = "center";
+          valign = "bottom";
+        }
       ];
     };
   };
