@@ -359,4 +359,82 @@ in
   # Clipboard history. Two `wl-paste --watch` user services record text
   # and image copies; `$mod+C` (hyprland.nix) lists them through wofi.
   services.cliphist.enable = true;
+
+  # App launcher / dmenu picker. Bound to $mod+D (drun) and $mod+C
+  # (cliphist via --dmenu) in hyprland.nix. Owned here so the style.css
+  # below tracks the matugen palette — previously wofi was installed
+  # at the system level with default styling.
+  programs.wofi = {
+    enable = true;
+    settings = {
+      width = 600;
+      height = 400;
+      location = "center";
+      show = "drun";
+      prompt = "search";
+      filter_rate = 100;
+      allow_markup = true;
+      no_actions = true;
+      halign = "fill";
+      orientation = "vertical";
+      content_halign = "fill";
+      insensitive = true;
+      allow_images = true;
+      image_size = 32;
+      gtk_dark = true;
+    };
+    style = ''
+      * {
+        font-family: "Noto Sans", "Symbols Nerd Font";
+        font-size: 13px;
+      }
+
+      window {
+        background-color: ${css "surface_container"};
+        border: 1px solid ${css "outline_variant"};
+        border-radius: 12px;
+        color: ${css "on_surface"};
+      }
+
+      #input {
+        margin: 12px;
+        padding: 8px 12px;
+        border: 1px solid ${css "outline_variant"};
+        border-radius: 8px;
+        background-color: ${css "surface_container_high"};
+        color: ${css "on_surface"};
+      }
+      #input:focus {
+        border-color: ${css "primary"};
+      }
+
+      #inner-box {
+        margin: 0 6px 6px 6px;
+      }
+      #outer-box {
+        padding: 0;
+      }
+      #scroll {
+        margin: 0;
+      }
+
+      #entry {
+        padding: 6px 12px;
+        margin: 2px 6px;
+        border-radius: 8px;
+        background: transparent;
+        color: ${css "on_surface"};
+      }
+      #entry:selected {
+        background-color: ${css "primary"};
+        color: ${css "on_primary"};
+      }
+      #entry image {
+        margin-right: 10px;
+      }
+      #text {
+        color: inherit;
+      }
+    '';
+  };
 }

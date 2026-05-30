@@ -48,16 +48,14 @@
   # duplicate the closure entry under the system profile.
   # pavucontrol = GUI volume mixer, fired by waybar's on-click handler.
   environment.systemPackages = with pkgs; [
-    wofi
     grim
     slurp
     wl-clipboard
     polkit_gnome
     pavucontrol
-    # GUI logout/shutdown/reboot/lock overlay. Fired from a waybar
-    # power button (see home/patrikpersson/desktop-shell.nix). Ships
-    # with a sensible default layout at /etc/wlogout/layout.
-    wlogout
+    # wofi (app launcher / dmenu picker) and wlogout (power overlay) are
+    # owned per-user by home-manager (see home/patrikpersson/desktop-shell.nix)
+    # so they ship with our matugen-themed style.css instead of defaults.
   ];
 
   # Font baseline. Required for emoji + CJK rendering in any GTK/Qt
