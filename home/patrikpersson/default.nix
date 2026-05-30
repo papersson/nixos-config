@@ -232,6 +232,16 @@
     config.global.hide_env_diff = true;
   };
 
+  # TUI file manager. enableZshIntegration installs the `y` shell wrapper
+  # that exits yazi back into zsh at whatever directory you navigated to.
+  programs.yazi = {
+    enable = true;
+    enableZshIntegration = true;
+  };
+
+  # TUI system monitor — top/htop replacement.
+  programs.btop.enable = true;
+
   # Fall back to other completers when carapace lacks a native one.
   home.sessionVariables = {
     CARAPACE_BRIDGES = "zsh,fish,bash,inshellisense";

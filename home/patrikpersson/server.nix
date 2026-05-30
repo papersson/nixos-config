@@ -127,6 +127,13 @@
     config.global.hide_env_diff = true;
   };
 
+  programs.yazi = {
+    enable = true;
+    enableZshIntegration = true;
+  };
+
+  programs.btop.enable = true;
+
   programs.tmux.enable = true;
 
   home.sessionVariables = {
