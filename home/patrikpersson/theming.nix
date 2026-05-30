@@ -1,10 +1,19 @@
 { config, pkgs, lib, ... }:
 
+let
+  # Same matugen accessor pattern as desktop-shell.nix / default.nix —
+  # used to push the wallpaper-derived accent into GTK below.
+  c = role: config.programs.matugen.theme.colors.${role}.default.color;
+in
 {
   # GTK theme. Without GNOME's settings daemon writing dconf, GTK 3/4
   # apps fall back to last-decade defaults. Setting `gtk.theme` here
   # writes ~/.config/gtk-{3,4}.0/settings.ini so every GTK app picks
-  # up Adwaita-dark consistently.
+  # up Adwaita-dark consistently. extraCss overrides the accent colour
+  # roles on top of Adwaita so selection / button highlight / focus rings
+  # follow the matugen palette (`primary` = coral on the current
+  # Cinque-Terre wallpaper). libadwaita apps (GTK4) pick this up via
+  # @define-color accent_*; GTK3 reads theme_selected_* the same way.
   gtk = {
     enable = true;
     theme = {
@@ -21,6 +30,15 @@
       name = "Noto Sans";
       size = 11;
     };
+    gtk3.extraCss = ''
+      @define-color theme_selected_bg_color ${c "primary"};
+      @define-color theme_selected_fg_color ${c "on_primary"};
+    '';
+    gtk4.extraCss = ''
+      @define-color accent_color ${c "primary"};
+      @define-color accent_bg_color ${c "primary"};
+      @define-color accent_fg_color ${c "on_primary"};
+    '';
   };
 
   # Qt theming. Qt apps (KeePassXC, OBS, Telegram desktop, qBittorrent)
