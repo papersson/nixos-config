@@ -1,11 +1,5 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, ... }:
 
-let
-  # Pull a hex colour from the matugen palette (same accessor pattern as
-  # desktop-shell.nix). Used to build the Ghostty theme below so the
-  # terminal tracks the wallpaper instead of sitting on a fixed Catppuccin.
-  c = role: config.programs.matugen.theme.colors.${role}.default.color;
-in
 {
   imports = [ ./nvim.nix ./hyprland.nix ./theming.nix ./desktop-shell.nix ./claude.nix ];
 
@@ -67,11 +61,13 @@ in
     enableZshIntegration = true;
     installBatSyntax = true;
     settings = {
-      background-opacity = 1;
+      # Translucent terminal: 85% opacity over Hyprland's existing
+      # `decoration.blur.enabled` (hyprland.nix) produces a glassy effect
+      # — the wallpaper smears through behind text without making it
+      # unreadable. Drop lower (0.7) if you want it more transparent.
+      background-opacity = 0.85;
       window-padding-balance = true;
-      # Built theme below — driven by the matugen palette so the terminal
-      # re-tints with the wallpaper on rebuild.
-      theme = "matugen";
+      theme = "Catppuccin Mocha";
       window-padding-x = 10;
       window-padding-y = 10;
       keybind = [
@@ -101,37 +97,6 @@ in
       font-family = "JetBrainsMono Nerd Font Mono";
       font-thicken = true;
       adjust-cell-height = "25%";
-    };
-    # Material You palette → Ghostty theme. ANSI semantics (red=1, green=2,
-    # blue=4) are sacrificed for visual coherence: slots map to M3 roles, so
-    # 1/9 are the error role (red-ish), 4/12 are primary (coral in this
-    # palette), 3/11 are tertiary (gold). `ls --color` etc. will look warm
-    # rather than primary-colour. cursor/selection follow primary too.
-    themes.matugen = {
-      background = c "surface";
-      foreground = c "on_surface";
-      cursor-color = c "primary";
-      cursor-text = c "on_primary";
-      selection-background = c "primary_container";
-      selection-foreground = c "on_primary_container";
-      palette = [
-        "0=${c "surface_container"}"
-        "1=${c "error"}"
-        "2=${c "tertiary"}"
-        "3=${c "secondary"}"
-        "4=${c "primary"}"
-        "5=${c "primary_fixed"}"
-        "6=${c "tertiary_fixed"}"
-        "7=${c "on_surface_variant"}"
-        "8=${c "surface_container_high"}"
-        "9=${c "error_container"}"
-        "10=${c "tertiary_container"}"
-        "11=${c "secondary_container"}"
-        "12=${c "primary_container"}"
-        "13=${c "primary_fixed_dim"}"
-        "14=${c "tertiary_fixed_dim"}"
-        "15=${c "on_surface"}"
-      ];
     };
   };
 
