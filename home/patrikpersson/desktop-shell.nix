@@ -360,6 +360,63 @@ in
   # and image copies; `$mod+C` (hyprland.nix) lists them through wofi.
   services.cliphist.enable = true;
 
+  # Power overlay. Fired from the waybar power chip ($mod+SHIFT+E too,
+  # in hyprland.nix). Owned here so the style.css and layout follow the
+  # matugen palette — previously wlogout was installed at the system
+  # level with its default unstyled overlay. Icons are pulled from the
+  # bundled package data dir via background-image url() in the CSS.
+  programs.wlogout = {
+    enable = true;
+    layout = [
+      { label = "lock";      action = "loginctl lock-session";           text = "Lock";     keybind = "l"; }
+      { label = "logout";    action = "hyprctl dispatch exit";           text = "Logout";   keybind = "e"; }
+      { label = "suspend";   action = "systemctl suspend";               text = "Suspend";  keybind = "u"; }
+      { label = "hibernate"; action = "systemctl hibernate";             text = "Hiber";    keybind = "h"; }
+      { label = "reboot";    action = "systemctl reboot";                text = "Reboot";   keybind = "r"; }
+      { label = "shutdown";  action = "systemctl poweroff";              text = "Shutdown"; keybind = "s"; }
+    ];
+    style = ''
+      * {
+        font-family: "Noto Sans";
+        font-size: 16px;
+        background-image: none;
+        transition: 200ms;
+      }
+
+      window {
+        /* GTK CSS alpha() blends an opaque colour with the destination,
+           dimming the wallpaper behind the overlay. */
+        background-color: alpha(${css "surface"}, 0.85);
+      }
+
+      button {
+        color: ${css "on_surface"};
+        background-color: ${css "surface_container"};
+        border-radius: 16px;
+        border: 1px solid ${css "outline_variant"};
+        margin: 10px;
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 25%;
+      }
+
+      button:focus, button:active, button:hover {
+        background-color: ${css "primary"};
+        color: ${css "on_primary"};
+        border-color: ${css "primary"};
+        outline-style: none;
+      }
+
+      /* Bundled icons from the wlogout package's data dir. */
+      #lock      { background-image: url("${pkgs.wlogout}/share/wlogout/icons/lock.png"); }
+      #logout    { background-image: url("${pkgs.wlogout}/share/wlogout/icons/logout.png"); }
+      #suspend   { background-image: url("${pkgs.wlogout}/share/wlogout/icons/suspend.png"); }
+      #hibernate { background-image: url("${pkgs.wlogout}/share/wlogout/icons/hibernate.png"); }
+      #reboot    { background-image: url("${pkgs.wlogout}/share/wlogout/icons/reboot.png"); }
+      #shutdown  { background-image: url("${pkgs.wlogout}/share/wlogout/icons/shutdown.png"); }
+    '';
+  };
+
   # App launcher / dmenu picker. Bound to $mod+D (drun) and $mod+C
   # (cliphist via --dmenu) in hyprland.nix. Owned here so the style.css
   # below tracks the matugen palette — previously wofi was installed
