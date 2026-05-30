@@ -336,6 +336,16 @@ in
         # Start focused on the 4K (the primary), not whatever monitor
         # Hyprland enumerates first. No-op when the dock is absent.
         "hyprctl dispatch focusmonitor desc:LG Electronics LG HDR 4K"
+        # Plugins (declared above in `plugins = [ ... ]`) are loaded via
+        # HM-generated `exec-once = hyprctl plugin load …` lines, which
+        # run AFTER Hyprland parses the conf. That means binds that
+        # reference plugin dispatchers (e.g. `hyprexpo:expo`) fail at
+        # parse time with "Invalid dispatcher does not exist" before
+        # the .so is loaded. Re-reload the conf once plugins are up so
+        # those binds get registered against the now-existing
+        # dispatchers. 1-second sleep is the safety margin for the
+        # plugin-load exec-once's to complete first.
+        "sleep 1 && hyprctl reload"
       ];
     };
   };
