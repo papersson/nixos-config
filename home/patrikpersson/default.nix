@@ -1,5 +1,11 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
+let
+  # Pull a hex colour from the matugen palette (same accessor pattern as
+  # desktop-shell.nix). Used to build the Ghostty theme below so the
+  # terminal tracks the wallpaper instead of sitting on a fixed Catppuccin.
+  c = role: config.programs.matugen.theme.colors.${role}.default.color;
+in
 {
   imports = [ ./nvim.nix ./hyprland.nix ./theming.nix ./desktop-shell.nix ./claude.nix ];
 
@@ -63,7 +69,9 @@
     settings = {
       background-opacity = 1;
       window-padding-balance = true;
-      theme = "Catppuccin Mocha";
+      # Built theme below — driven by the matugen palette so the terminal
+      # re-tints with the wallpaper on rebuild.
+      theme = "matugen";
       window-padding-x = 10;
       window-padding-y = 10;
       keybind = [
@@ -83,7 +91,6 @@
       ];
       cursor-style = "block";
       cursor-style-blink = false;
-      cursor-color = "#ffffff";
       mouse-hide-while-typing = true;
       # G502 wheel emits high-res sub-events per detent; default 3.0
       # multiplies into ~20 lines/notch. 1.0 brings it back to sane.
@@ -95,18 +102,35 @@
       font-thicken = true;
       adjust-cell-height = "25%";
     };
-    themes.zenbones-forestbones-dark = {
-      background = "#2c343a";
-      foreground = "#e7dcc4";
-      selection-background = "#615b51";
-      selection-foreground = "#e7dcc4";
-      cursor-color = "#ebe2cf";
-      cursor-text = "#2c343a";
+    # Material You palette → Ghostty theme. ANSI semantics (red=1, green=2,
+    # blue=4) are sacrificed for visual coherence: slots map to M3 roles, so
+    # 1/9 are the error role (red-ish), 4/12 are primary (coral in this
+    # palette), 3/11 are tertiary (gold). `ls --color` etc. will look warm
+    # rather than primary-colour. cursor/selection follow primary too.
+    themes.matugen = {
+      background = c "surface";
+      foreground = c "on_surface";
+      cursor-color = c "primary";
+      cursor-text = c "on_primary";
+      selection-background = c "primary_container";
+      selection-foreground = c "on_primary_container";
       palette = [
-        "0=#2c343a"  "1=#e67c7f"  "2=#a9c181"  "3=#ddbd7f"
-        "4=#7fbcb4"  "5=#d69ab7"  "6=#83c193"  "7=#e7dcc4"
-        "8=#45525c"  "9=#ed9294"  "10=#b0ce7b" "11=#edc77a"
-        "12=#7ac9c0" "13=#e5a7c4" "14=#7dd093" "15=#b2a790"
+        "0=${c "surface_container"}"
+        "1=${c "error"}"
+        "2=${c "tertiary"}"
+        "3=${c "secondary"}"
+        "4=${c "primary"}"
+        "5=${c "primary_fixed"}"
+        "6=${c "tertiary_fixed"}"
+        "7=${c "on_surface_variant"}"
+        "8=${c "surface_container_high"}"
+        "9=${c "error_container"}"
+        "10=${c "tertiary_container"}"
+        "11=${c "secondary_container"}"
+        "12=${c "primary_container"}"
+        "13=${c "primary_fixed_dim"}"
+        "14=${c "tertiary_fixed_dim"}"
+        "15=${c "on_surface"}"
       ];
     };
   };
