@@ -178,6 +178,9 @@ in
     # CSS inline so the bar's structure stays in one file. Colours are
     # the matugen palette via `css` (see the `let` block) — the bar
     # re-tints whenever the wallpaper changes and the flake is rebuilt.
+    # Layout signature borrowed from bautistaaa/dotfiles (Catppuccin):
+    # translucent bar + accent fills on the eye-catchers (active
+    # workspace, focused window) + translucent chips on status modules.
     style = ''
       * {
         /* Noto Sans for proportional text; Symbols Nerd Font supplies
@@ -191,21 +194,24 @@ in
          off the screen edges, border-radius rounds it. The alpha() blend
          on the background is paired with a Hyprland `layerrule = blur,
          waybar` (hyprland.nix) so windows behind the bar diffuse through
-         it instead of just showing semi-transparent surface colour. */
+         it instead of just showing semi-transparent surface colour.
+         Border picks up the primary at low alpha for a soft accent edge. */
       window#waybar {
         background: alpha(${css "surface"}, 0.72);
-        border: 1px solid ${css "outline_variant"};
-        border-radius: 12px;
+        border: 1px solid alpha(${css "primary"}, 0.35);
+        border-radius: 16px;
         color: ${css "on_surface"};
       }
 
-      /* Workspaces: an accent pill on the active workspace. */
+      /* Workspaces. Active workspace is a solid primary chip — the
+         strongest accent on the bar. Inactive workspaces have no chrome;
+         hover lifts a soft primary tint. */
       #workspaces {
-        margin: 0 4px;
+        margin: 0 6px;
       }
       #workspaces button {
-        padding: 0 9px;
-        margin: 4px 2px;
+        padding: 0 10px;
+        margin: 5px 3px;
         border: none;
         border-radius: 8px;
         box-shadow: none;
@@ -217,35 +223,47 @@ in
         color: ${css "on_primary"};
       }
       #workspaces button:hover {
-        background: ${css "surface_container_high"};
+        background: alpha(${css "primary"}, 0.30);
         color: ${css "on_surface"};
       }
 
+      /* Focused window — second accent. Solid primary chip carrying the
+         window title. Empty title collapses to no module on most waybar
+         versions; if the chip ever looks awkward, swap to a custom/exec
+         script (bautistaaa does this) for nicer formatting. */
       #window {
-        padding: 0 8px;
-        color: ${css "on_surface_variant"};
+        padding: 0 12px;
+        margin: 5px 4px;
+        border-radius: 8px;
+        background: ${css "primary"};
+        color: ${css "on_primary"};
+        font-weight: bold;
       }
 
+      /* Centre clock — minimal, lets workspace/window chips be the
+         visual anchors. */
       #clock {
         padding: 0 14px;
+        margin: 5px 4px;
         font-weight: bold;
-        color: ${css "primary"};
+        color: ${css "on_surface"};
       }
 
-      /* Right-side status modules: a chip each. */
+      /* Right-side status modules: a translucent chip each so the
+         wallpaper bleeds through behind them, matching the bar's body. */
       #pulseaudio,
       #network,
       #battery,
       #custom-power {
-        padding: 0 10px;
-        margin: 4px 2px;
+        padding: 0 12px;
+        margin: 5px 4px;
         border-radius: 8px;
-        background: ${css "surface_container"};
+        background: alpha(${css "surface_container_high"}, 0.85);
         color: ${css "on_surface"};
       }
       #tray {
         padding: 0 8px;
-        margin: 4px 2px;
+        margin: 5px 4px;
       }
 
       #custom-power {
