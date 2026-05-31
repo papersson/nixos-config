@@ -254,10 +254,12 @@ in
         "$mod, Return, exec, ghostty"
         "$mod, B,      exec, zen-beta"
         "$mod, D,      exec, wofi --show drun"
-        # Workspace overview (hyprexpo). Super+grave toggles a tiled
-        # preview of all workspaces; click one to focus. Free from
-        # collisions — Ctrl+grave is Ghostty's quick-terminal toggle.
-        "$mod, grave,  hyprexpo:expo, toggle"
+        # NB: $mod+grave (workspace overview, hyprexpo:expo) is NOT
+        # bound here. Its dispatcher only exists once the plugin loads,
+        # and HM loads plugins via exec-once *after* the conf is
+        # parsed — so a bind here would fail with "Invalid dispatcher
+        # does not exist" at parse time. Bound imperatively via
+        # `hyprctl keyword bind …` in the exec-once list below instead.
         # Clipboard history picker — cliphist's two watch services
         # (desktop-shell.nix) feed this list; decode + copy on select.
         "$mod, C,      exec, cliphist list | wofi --dmenu | cliphist decode | wl-copy"
@@ -336,16 +338,14 @@ in
         # Start focused on the 4K (the primary), not whatever monitor
         # Hyprland enumerates first. No-op when the dock is absent.
         "hyprctl dispatch focusmonitor desc:LG Electronics LG HDR 4K"
-        # Plugins (declared above in `plugins = [ ... ]`) are loaded via
-        # HM-generated `exec-once = hyprctl plugin load …` lines, which
-        # run AFTER Hyprland parses the conf. That means binds that
-        # reference plugin dispatchers (e.g. `hyprexpo:expo`) fail at
-        # parse time with "Invalid dispatcher does not exist" before
-        # the .so is loaded. Re-reload the conf once plugins are up so
-        # those binds get registered against the now-existing
-        # dispatchers. 1-second sleep is the safety margin for the
-        # plugin-load exec-once's to complete first.
-        "sleep 1 && hyprctl reload"
+        # Register plugin-dispatcher binds AFTER the HM-generated
+        # `hyprctl plugin load` exec-once lines have run. Doing this
+        # imperatively via `hyprctl keyword bind` (instead of putting
+        # it in settings.bind) avoids the parse-time "Invalid
+        # dispatcher" error — the bind is only created once the
+        # dispatcher exists. 1 s sleep is the safety margin for the
+        # plugin loads to land first.
+        "sleep 1 && hyprctl keyword bind '$mod, grave, hyprexpo:expo, toggle'"
       ];
     };
   };
