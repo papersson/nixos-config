@@ -86,6 +86,12 @@
     # lua/plugins/colorscheme.lua are applied via a ColorScheme autocmd.
     extraConfigLua = ''
       local function apply_gruvbox_overrides()
+        -- gruvbox-soft's bg0. Warm dark — used uniformly for any nvim
+        -- chrome that needs an opaque fill (current line, statusline,
+        -- bufferline ribbon). Picking one warm tone keeps the chrome
+        -- coherent with the wallpaper-bleed look of the rest of nvim.
+        local warm_bg = "#32302f"
+
         local hl = {
           -- Force the non-current window background transparent too.
           -- gruvbox's transparent_mode covers Normal but leaves NormalNC
@@ -93,9 +99,18 @@
           -- split when the terminal itself is translucent.
           NormalNC = { bg = "NONE" },
 
+          -- Editor focus row + the chrome bars. Default gruvbox paints
+          -- these in a colder neutral that clashes against the warm
+          -- wallpaper that bleeds through everything else.
+          CursorLine = { bg = warm_bg },
+          StatusLine = { bg = warm_bg },
+          StatusLineNC = { bg = warm_bg },
+          TabLineFill = { bg = warm_bg },
+          BufferLineFill = { bg = warm_bg },
+
           NeoTreeNormal = { bg = "NONE", fg = "#ebdbb2" },
           NeoTreeNormalNC = { bg = "NONE", fg = "#ebdbb2" },
-          NeoTreeCursorLine = { bg = "#3c3836" },
+          NeoTreeCursorLine = { bg = warm_bg },
 
           ["@function"] = { fg = "#b8bb26" },
           ["@function.call"] = { fg = "#b8bb26" },
