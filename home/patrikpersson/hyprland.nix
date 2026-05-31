@@ -1,11 +1,5 @@
-{ config, pkgs, lib, ... }:
+{ pkgs, lib, catp, ... }:
 
-let
-  # Same matugen accessor pattern as desktop-shell.nix / default.nix /
-  # theming.nix — used here to colour the hyprtrails plugin from the
-  # wallpaper-derived palette.
-  css = role: config.programs.matugen.theme.colors.${role}.default.color;
-in
 {
   wayland.windowManager.hyprland = {
     # The system module installs Hyprland + portal. package/portalPackage
@@ -193,11 +187,12 @@ in
           workspace_method = "center current";
           enable_gesture = false;
         };
-        # hyprtrails: motion trail behind moving windows. Coral trail
-        # (matugen primary + 53% alpha) — visible during a drag/resize,
-        # invisible at rest. Defaults for the bezier smoothness are fine.
+        # hyprtrails: motion trail behind moving windows. Mauve trail
+        # (Catppuccin primary + 53% alpha) — visible during a drag /
+        # resize, invisible at rest. Defaults for the bezier smoothness
+        # are fine.
         hyprtrails = {
-          color = "rgba(${lib.removePrefix "#" (css "primary")}88)";
+          color = "rgba(${lib.removePrefix "#" catp.mauve}88)";
         };
       };
 

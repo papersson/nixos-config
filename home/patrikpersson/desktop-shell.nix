@@ -1,21 +1,15 @@
-{ config, pkgs, lib, ... }:
+{ pkgs, lib, catp, ... }:
 
 let
-  # Single wallpaper source of truth: hyprpaper displays it and matugen
-  # derives the colour palette from it. Committed into the repo so pure
-  # flake eval can see it. (Anders Jilden — Vernazza, Cinque Terre.)
+  # Wallpaper file. Used by hyprpaper (visible desktop background) and
+  # hyprlock (blurred lock-screen background). Committed into the repo
+  # so pure flake eval can see it. (Anders Jilden — Vernazza, Cinque Terre.)
   wallpaper = ./wallpapers/cinque-terre.jpg;
 
-  # matugen renders a Material You palette from that wallpaper at build
-  # time — `config.programs.matugen.theme.colors` is the parsed result
-  # (an IFD: eval builds the matugen derivation). Two accessors for the
-  # two consumer formats:
-  #   css          — raw #rrggbb, for waybar/mako CSS and mako settings
-  #   paletteColor — wrapped in rgb(), for Hyprland-format consumers
-  #                  like hyprlock
-  # See docs/drafts/matugen-dynamic-theming.md.
-  css = role: config.programs.matugen.theme.colors.${role}.default.color;
-  paletteColor = role: "rgb(${lib.removePrefix "#" (css role)})";
+  # hyprlock wants colours in Hyprland's rgb() format. Small wrapper so
+  # the consumers below stay readable: `rgb catp.mauve` is nicer than
+  # an inline `"rgb(${lib.removePrefix "#" catp.mauve})"`.
+  rgb = c: "rgb(${lib.removePrefix "#" c})";
 
   # Nerd Font icon glyphs, referenced by codepoint. Raw glyphs live in
   # the Private Use Area (U+E000–U+F8FF); the editing pipeline silently
@@ -27,24 +21,6 @@ let
   glyph = cp: builtins.fromJSON ''"\u${cp}"'';
 in
 {
-  # Material You palette generated from the wallpaper above. The module
-  # runs matugen inside a derivation at build time (Option 2 / build-time
-  # theming from docs/drafts/matugen-dynamic-theming.md) — no runtime
-  # daemon, no mutable state. waybar, mako and hyprlock all read it via
-  # the `css` / `paletteColor` helpers above.
-  programs.matugen = {
-    enable = true;
-    inherit wallpaper;
-    # scheme-content stays faithful to the source image. index 1 picks
-    # the warm sunset candidate colour — index 0 is the cool sea/sky,
-    # which every scheme desaturates to grey-blue. Net: coral primary,
-    # gold tertiary, warm near-black surface.
-    type = "scheme-content";
-    source_color_index = 1;
-    jsonFormat = "hex";
-    variant = "dark";
-  };
-
   # Wallpaper daemon. Hyprland-native, runs as a user systemd service
   # via home-manager. Per-monitor + per-workspace switching via
   # `hyprctl hyprpaper wallpaper`. ipc=on lets us script changes later.
@@ -59,14 +35,14 @@ in
   };
 
   # Notification daemon. Mako reads ~/.config/mako/config (HM writes
-  # it from settings). Colours come from the matugen palette so pop-ups
-  # match the bar. anchor=top-right puts them under the waybar clock.
+  # it from settings). Catppuccin Mocha palette via the `catp` arg
+  # (palette.nix). anchor=top-right puts pop-ups under the waybar clock.
   services.mako = {
     enable = true;
     settings = {
-      "border-color" = css "primary";
-      "background-color" = css "surface_container";
-      "text-color" = css "on_surface";
+      "border-color" = catp.mauve;
+      "background-color" = catp.surface0;
+      "text-color" = catp.text;
       "border-radius" = 8;
       "border-size" = 2;
       "default-timeout" = 5000;
@@ -176,11 +152,10 @@ in
     };
 
     # CSS inline so the bar's structure stays in one file. Colours are
-    # the matugen palette via `css` (see the `let` block) — the bar
-    # re-tints whenever the wallpaper changes and the flake is rebuilt.
-    # Layout signature borrowed from bautistaaa/dotfiles (Catppuccin):
-    # translucent bar + accent fills on the eye-catchers (active
-    # workspace, focused window) + translucent chips on status modules.
+    # the Catppuccin Mocha palette via `catp` (palette.nix). Layout
+    # signature borrowed from bautistaaa/dotfiles: translucent bar +
+    # mauve accent fills on the eye-catchers (active workspace, focused
+    # window) + translucent surface0 chips on status modules.
     style = ''
       * {
         /* Noto Sans for proportional text; Symbols Nerd Font supplies
@@ -194,18 +169,18 @@ in
          off the screen edges, border-radius rounds it. The alpha() blend
          on the background is paired with a Hyprland `layerrule = blur,
          waybar` (hyprland.nix) so windows behind the bar diffuse through
-         it instead of just showing semi-transparent surface colour.
-         Border picks up the primary at low alpha for a soft accent edge. */
+         it instead of just showing semi-transparent crust colour.
+         Border picks up mauve at low alpha for a soft accent edge. */
       window#waybar {
-        background: alpha(${css "surface"}, 0.72);
-        border: 1px solid alpha(${css "primary"}, 0.35);
+        background: alpha(${catp.crust}, 0.72);
+        border: 1px solid alpha(${catp.mauve}, 0.35);
         border-radius: 16px;
-        color: ${css "on_surface"};
+        color: ${catp.text};
       }
 
-      /* Workspaces. Active workspace is a solid primary chip — the
+      /* Workspaces. Active workspace is a solid mauve chip — the
          strongest accent on the bar. Inactive workspaces have no chrome;
-         hover lifts a soft primary tint. */
+         hover lifts a soft mauve tint. */
       #workspaces {
         margin: 0 6px;
       }
@@ -216,18 +191,18 @@ in
         border-radius: 8px;
         box-shadow: none;
         background: transparent;
-        color: ${css "on_surface_variant"};
+        color: ${catp.subtext0};
       }
       #workspaces button.active {
-        background: ${css "primary"};
-        color: ${css "on_primary"};
+        background: ${catp.mauve};
+        color: ${catp.crust};
       }
       #workspaces button:hover {
-        background: alpha(${css "primary"}, 0.30);
-        color: ${css "on_surface"};
+        background: alpha(${catp.mauve}, 0.30);
+        color: ${catp.text};
       }
 
-      /* Focused window — second accent. Solid primary chip carrying the
+      /* Focused window — second accent. Solid mauve chip carrying the
          window title. Empty title collapses to no module on most waybar
          versions; if the chip ever looks awkward, swap to a custom/exec
          script (bautistaaa does this) for nicer formatting. */
@@ -235,8 +210,8 @@ in
         padding: 0 12px;
         margin: 5px 4px;
         border-radius: 8px;
-        background: ${css "primary"};
-        color: ${css "on_primary"};
+        background: ${catp.mauve};
+        color: ${catp.crust};
         font-weight: bold;
       }
 
@@ -246,11 +221,11 @@ in
         padding: 0 14px;
         margin: 5px 4px;
         font-weight: bold;
-        color: ${css "on_surface"};
+        color: ${catp.text};
       }
 
-      /* Right-side status modules: a translucent chip each so the
-         wallpaper bleeds through behind them, matching the bar's body. */
+      /* Right-side status modules: a translucent surface0 chip each.
+         Matches bautistaaa's rgba(49, 50, 68, 0.85) exactly. */
       #pulseaudio,
       #network,
       #battery,
@@ -258,8 +233,8 @@ in
         padding: 0 12px;
         margin: 5px 4px;
         border-radius: 8px;
-        background: alpha(${css "surface_container_high"}, 0.85);
-        color: ${css "on_surface"};
+        background: alpha(${catp.surface0}, 0.85);
+        color: ${catp.text};
       }
       #tray {
         padding: 0 8px;
@@ -267,19 +242,19 @@ in
       }
 
       #custom-power {
-        color: ${css "primary"};
+        color: ${catp.mauve};
         font-size: 15px;
         /* Icon-only module — force the symbols font directly instead of
            relying on the Noto-Sans→Symbols Pango fallback chain. */
         font-family: "Symbols Nerd Font";
       }
       #custom-power:hover {
-        background: ${css "error"};
-        color: ${css "on_primary"};
+        background: ${catp.red};
+        color: ${catp.crust};
       }
 
-      #battery.warning  { color: ${css "tertiary"}; }
-      #battery.critical { color: ${css "error"}; }
+      #battery.warning  { color: ${catp.peach}; }
+      #battery.critical { color: ${catp.red}; }
     '';
   };
 
@@ -311,7 +286,7 @@ in
 
   # Lock screen. Hyprland-native, GPU-accelerated — replaces swaylock.
   # Background is the same wallpaper as hyprpaper, blurred; palette
-  # matches the Nord-ish waybar/mako theme above.
+  # matches the Catppuccin waybar/mako theme above.
   programs.hyprlock = {
     enable = true;
     settings = {
@@ -337,12 +312,11 @@ in
         rounding = 8;
         dots_center = true;
         fade_on_empty = false;
-        # Material You roles from matugen (see paletteColor above).
-        inner_color = paletteColor "surface";
-        outer_color = paletteColor "primary";
-        check_color = paletteColor "tertiary";
-        fail_color = paletteColor "error";
-        font_color = paletteColor "on_surface";
+        inner_color = rgb catp.crust;
+        outer_color = rgb catp.mauve;
+        check_color = rgb catp.peach;
+        fail_color = rgb catp.red;
+        font_color = rgb catp.text;
         placeholder_text = "<i>Password…</i>";
       }];
 
@@ -352,7 +326,7 @@ in
           text = "$TIME";
           font_size = 64;
           font_family = "Noto Sans";
-          color = paletteColor "primary";
+          color = rgb catp.mauve;
           position = "0, 120";
           halign = "center";
           valign = "center";
@@ -362,7 +336,7 @@ in
           text = ''cmd[update:60000] date +"%A, %d %B"'';
           font_size = 20;
           font_family = "Noto Sans";
-          color = paletteColor "on_surface";
+          color = rgb catp.text;
           position = "0, 50";
           halign = "center";
           valign = "center";
@@ -376,7 +350,7 @@ in
           text = ''cmd[update:5000] playerctl metadata --format "{{ artist }} — {{ title }}" 2>/dev/null'';
           font_size = 14;
           font_family = "Noto Sans";
-          color = paletteColor "on_surface_variant";
+          color = rgb catp.subtext0;
           position = "0, 80";
           halign = "center";
           valign = "bottom";
@@ -393,37 +367,37 @@ in
 
   # swayosd doesn't have a style option on the HM module, so write the
   # GTK CSS directly. Matches the waybar/mako visual language: rounded
-  # surface_container pill with a primary-coloured progress fill.
+  # surface0 pill with a mauve progress fill.
   xdg.configFile."swayosd/style.css".text = ''
     window#osd {
-      background-color: ${css "surface_container"};
-      border: 1px solid ${css "outline_variant"};
+      background-color: ${catp.surface0};
+      border: 1px solid ${catp.surface1};
       border-radius: 12px;
       padding: 12px 16px;
-      color: ${css "on_surface"};
+      color: ${catp.text};
     }
 
     window#osd image {
-      color: ${css "on_surface"};
+      color: ${catp.text};
       min-height: 24px;
       min-width: 24px;
     }
 
     window#osd label {
-      color: ${css "on_surface"};
+      color: ${catp.text};
     }
 
     window#osd progressbar {
       min-height: 8px;
     }
     window#osd progressbar trough {
-      background-color: ${css "surface_container_high"};
+      background-color: ${catp.surface1};
       border: none;
       border-radius: 4px;
       min-height: 8px;
     }
     window#osd progressbar progress {
-      background-color: ${css "primary"};
+      background-color: ${catp.mauve};
       border: none;
       border-radius: 4px;
       min-height: 8px;
@@ -436,7 +410,7 @@ in
 
   # Power overlay. Fired from the waybar power chip ($mod+SHIFT+E too,
   # in hyprland.nix). Owned here so the style.css and layout follow the
-  # matugen palette — previously wlogout was installed at the system
+  # Catppuccin palette — previously wlogout was installed at the system
   # level with its default unstyled overlay. Icons are pulled from the
   # bundled package data dir via background-image url() in the CSS.
   programs.wlogout = {
@@ -460,14 +434,14 @@ in
       window {
         /* GTK CSS alpha() blends an opaque colour with the destination,
            dimming the wallpaper behind the overlay. */
-        background-color: alpha(${css "surface"}, 0.85);
+        background-color: alpha(${catp.crust}, 0.85);
       }
 
       button {
-        color: ${css "on_surface"};
-        background-color: ${css "surface_container"};
+        color: ${catp.text};
+        background-color: ${catp.surface0};
         border-radius: 16px;
-        border: 1px solid ${css "outline_variant"};
+        border: 1px solid ${catp.surface1};
         margin: 10px;
         background-repeat: no-repeat;
         background-position: center;
@@ -475,9 +449,9 @@ in
       }
 
       button:focus, button:active, button:hover {
-        background-color: ${css "primary"};
-        color: ${css "on_primary"};
-        border-color: ${css "primary"};
+        background-color: ${catp.mauve};
+        color: ${catp.crust};
+        border-color: ${catp.mauve};
         outline-style: none;
       }
 
@@ -493,7 +467,7 @@ in
 
   # App launcher / dmenu picker. Bound to $mod+D (drun) and $mod+C
   # (cliphist via --dmenu) in hyprland.nix. Owned here so the style.css
-  # below tracks the matugen palette — previously wofi was installed
+  # below tracks the Catppuccin palette — previously wofi was installed
   # at the system level with default styling.
   programs.wofi = {
     enable = true;
@@ -521,22 +495,22 @@ in
       }
 
       window {
-        background-color: ${css "surface_container"};
-        border: 1px solid ${css "outline_variant"};
+        background-color: ${catp.surface0};
+        border: 1px solid ${catp.surface1};
         border-radius: 12px;
-        color: ${css "on_surface"};
+        color: ${catp.text};
       }
 
       #input {
         margin: 12px;
         padding: 8px 12px;
-        border: 1px solid ${css "outline_variant"};
+        border: 1px solid ${catp.surface1};
         border-radius: 8px;
-        background-color: ${css "surface_container_high"};
-        color: ${css "on_surface"};
+        background-color: ${catp.surface1};
+        color: ${catp.text};
       }
       #input:focus {
-        border-color: ${css "primary"};
+        border-color: ${catp.mauve};
       }
 
       #inner-box {
@@ -554,11 +528,11 @@ in
         margin: 2px 6px;
         border-radius: 8px;
         background: transparent;
-        color: ${css "on_surface"};
+        color: ${catp.text};
       }
       #entry:selected {
-        background-color: ${css "primary"};
-        color: ${css "on_primary"};
+        background-color: ${catp.mauve};
+        color: ${catp.crust};
       }
       #entry image {
         margin-right: 10px;

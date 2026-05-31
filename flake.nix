@@ -45,16 +45,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # Material You colour generation from a wallpaper. Pinned to a tag:
-    # matugen's home-manager module assumes v4's JSON shape, and nixpkgs
-    # 25.11 still ships v3 — so we take the binary + module from the flake
-    # itself, not pkgs. Build-time palette feeding waybar/mako/hyprlock;
-    # see docs/drafts/matugen-dynamic-theming.md.
-    matugen = {
-      url = "github:InioX/matugen/v4.1.0";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     # Zen browser (Firefox fork) — not packaged in nixpkgs. The flake
     # ships the binary plus a home-manager module (`programs.zen-browser`).
     # Upstream advises following nixpkgs-unstable so the bundled build
@@ -86,7 +76,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix, lanzaboote, nixvim, matugen, zen-browser, nix-claude-code, ... }@inputs: {
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix, lanzaboote, nixvim, zen-browser, nix-claude-code, ... }@inputs: {
     nixosConfigurations.t14 = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
@@ -109,9 +99,6 @@
           home-manager.sharedModules = [
             sops-nix.homeManagerModules.sops
             nixvim.homeModules.nixvim
-            # Defines `programs.matugen` for the HM config. Named
-            # `nixosModules` upstream but it's a home-manager module.
-            matugen.nixosModules.default
             # Defines `programs.zen-browser`. `beta` is the flake's
             # default channel — updates only on a flake.lock bump.
             zen-browser.homeModules.beta
