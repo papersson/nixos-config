@@ -64,7 +64,13 @@
       settings = {
         transparent_mode = true;
         contrast = "soft";
-        dim_inactive = true;
+        # dim_inactive intentionally OFF. It paints NormalNC with an
+        # opaque dark fill so the inactive window stands apart from the
+        # focused one. That looks broken against a transparent terminal
+        # (Ghostty background-opacity 0.85) — the dimmed window shows
+        # as a dark rectangle while the focused window correctly bleeds
+        # the wallpaper through. Keep it off as long as the terminal is
+        # translucent.
         italic = {
           strings = false;
           emphasis = false;
@@ -81,6 +87,12 @@
     extraConfigLua = ''
       local function apply_gruvbox_overrides()
         local hl = {
+          -- Force the non-current window background transparent too.
+          -- gruvbox's transparent_mode covers Normal but leaves NormalNC
+          -- opaque, which shows as a dark rectangle in the inactive
+          -- split when the terminal itself is translucent.
+          NormalNC = { bg = "NONE" },
+
           NeoTreeNormal = { bg = "NONE", fg = "#ebdbb2" },
           NeoTreeNormalNC = { bg = "NONE", fg = "#ebdbb2" },
           NeoTreeCursorLine = { bg = "#3c3836" },
