@@ -59,89 +59,35 @@
       completeopt = [ "menu" "menuone" "noselect" ];
     };
 
-    colorschemes.gruvbox = {
+    # Catppuccin Mocha. Matches the Ghostty terminal theme so nvim reads
+    # as a continuation of the terminal rather than a separate visual
+    # context. transparent_background lets the terminal's translucent
+    # background (Ghostty background-opacity 0.85) bleed through nvim
+    # itself. no_italic preserves the previous (gruvbox-era) preference
+    # of disabling italics globally.
+    colorschemes.catppuccin = {
       enable = true;
       settings = {
-        transparent_mode = true;
-        contrast = "soft";
-        # dim_inactive intentionally OFF. It paints NormalNC with an
-        # opaque dark fill so the inactive window stands apart from the
-        # focused one. That looks broken against a transparent terminal
-        # (Ghostty background-opacity 0.85) — the dimmed window shows
-        # as a dark rectangle while the focused window correctly bleeds
-        # the wallpaper through. Keep it off as long as the terminal is
-        # translucent.
-        italic = {
-          strings = false;
-          emphasis = false;
-          comments = false;
-          operators = false;
-          folds = false;
-        };
+        flavour = "mocha";
+        transparent_background = true;
+        no_italic = true;
+        term_colors = true;
       };
     };
 
-    # gruvbox.nvim's `overrides` table isn't exposed as a typed nixvim option,
-    # so the NeoTree + Treesitter colour overrides from
-    # lua/plugins/colorscheme.lua are applied via a ColorScheme autocmd.
+    # Catppuccin's transparent_background covers Normal but leaves
+    # NormalNC opaque — the inactive (non-focused) split would show as
+    # a dark rectangle against the translucent terminal. Force it back
+    # to transparent on every colorscheme load (pattern = "*" so this
+    # survives any future colorscheme change too).
     extraConfigLua = ''
-      local function apply_gruvbox_overrides()
-        -- gruvbox-soft's bg0. Warm dark — used uniformly for any nvim
-        -- chrome that needs an opaque fill (current line, statusline,
-        -- bufferline ribbon). Picking one warm tone keeps the chrome
-        -- coherent with the wallpaper-bleed look of the rest of nvim.
-        local warm_bg = "#32302f"
-
-        local hl = {
-          -- Force the non-current window background transparent too.
-          -- gruvbox's transparent_mode covers Normal but leaves NormalNC
-          -- opaque, which shows as a dark rectangle in the inactive
-          -- split when the terminal itself is translucent.
-          NormalNC = { bg = "NONE" },
-
-          -- Editor focus row + the chrome bars. Default gruvbox paints
-          -- these in a colder neutral that clashes against the warm
-          -- wallpaper that bleeds through everything else.
-          CursorLine = { bg = warm_bg },
-          StatusLine = { bg = warm_bg },
-          StatusLineNC = { bg = warm_bg },
-          TabLineFill = { bg = warm_bg },
-          BufferLineFill = { bg = warm_bg },
-
-          NeoTreeNormal = { bg = "NONE", fg = "#ebdbb2" },
-          NeoTreeNormalNC = { bg = "NONE", fg = "#ebdbb2" },
-          NeoTreeCursorLine = { bg = warm_bg },
-
-          ["@function"] = { fg = "#b8bb26" },
-          ["@function.call"] = { fg = "#b8bb26" },
-          ["@variable"] = { fg = "#ebdbb2" },
-          ["@field"] = { fg = "#83a598" },
-          ["@parameter"] = { fg = "#fbf1c7" },
-          ["@keyword"] = { fg = "#fb4934" },
-          ["@keyword.function"] = { fg = "#fb4934" },
-          ["@property"] = { fg = "#83a598" },
-          ["@type"] = { fg = "#fabd2f" },
-          ["@constructor"] = { fg = "#fabd2f" },
-          ["@constant"] = { fg = "#d3869b" },
-          ["@string"] = { fg = "#b8bb26" },
-          ["@number"] = { fg = "#d3869b" },
-          ["@boolean"] = { fg = "#d3869b" },
-          ["@operator"] = { fg = "#ebdbb2" },
-          ["@punctuation.delimiter"] = { fg = "#ebdbb2" },
-          ["@punctuation.bracket"] = { fg = "#ebdbb2" },
-          ["@comment"] = { fg = "#928374" },
-          ["@namespace"] = { fg = "#83a598" },
-        }
-        for group, opts in pairs(hl) do
-          vim.api.nvim_set_hl(0, group, opts)
-        end
-      end
-
       vim.api.nvim_create_autocmd("ColorScheme", {
-        pattern = "gruvbox",
-        callback = apply_gruvbox_overrides,
+        pattern = "*",
+        callback = function()
+          vim.api.nvim_set_hl(0, "NormalNC", { bg = "NONE" })
+        end,
       })
-      apply_gruvbox_overrides()
+      vim.api.nvim_set_hl(0, "NormalNC", { bg = "NONE" })
     '';
 
     autoCmd = [
@@ -648,6 +594,12 @@
           # bundled binary is a fallback; that project's devShell puts its own
           # `metals` earlier on PATH (nixvim appends its bundle as a suffix).
           metals.enable = true;
+          # OCaml — for the type-driven-mini-ml educational project. Same
+          # PATH-suffix pattern as metals: the bundled `ocaml-lsp` is a
+          # fallback, but that project's devShell puts its own `ocamllsp`
+          # (built against the project's OCaml 5.x) earlier on PATH, so the
+          # version-matched one wins inside the devShell.
+          ocamllsp.enable = true;
         };
         keymaps = {
           silent = true;
