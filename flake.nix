@@ -74,9 +74,19 @@
       url = "github:papersson/worklog";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Claude Code CLI, tracking Anthropic's official native binary releases.
+    # nixpkgs-unstable lags upstream by ~days because each version is a PR;
+    # this flake's CI checks hourly and ships pre-built binaries direct
+    # from Anthropic's distribution servers. Applied via overlay below so
+    # `pkgs.claude-code` is the bleeding-edge build everywhere.
+    nix-claude-code = {
+      url = "github:ryoppippi/nix-claude-code";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix, lanzaboote, nixvim, matugen, zen-browser, ... }@inputs: {
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix, lanzaboote, nixvim, matugen, zen-browser, nix-claude-code, ... }@inputs: {
     nixosConfigurations.t14 = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
@@ -113,6 +123,11 @@
           # system channel. `nix flake update nixpkgs-unstable` bumps just
           # this input.
           nixpkgs.overlays = [
+            # Bleeding-edge Claude Code from official Anthropic binaries —
+            # overrides `pkgs.claude-code` to the latest release tracked
+            # by ryoppippi/nix-claude-code (hourly auto-bump). Keeps the
+            # tool current without per-version flake editing.
+            nix-claude-code.overlays.default
             (final: _prev: {
               unstable = import nixpkgs-unstable {
                 inherit (final.stdenv.hostPlatform) system;
@@ -149,6 +164,11 @@
         }
         {
           nixpkgs.overlays = [
+            # Bleeding-edge Claude Code from official Anthropic binaries —
+            # overrides `pkgs.claude-code` to the latest release tracked
+            # by ryoppippi/nix-claude-code (hourly auto-bump). Keeps the
+            # tool current without per-version flake editing.
+            nix-claude-code.overlays.default
             (final: _prev: {
               unstable = import nixpkgs-unstable {
                 inherit (final.stdenv.hostPlatform) system;

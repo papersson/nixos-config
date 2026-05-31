@@ -93,9 +93,11 @@
     pciutils
     usbutils
 
-    # Agentic CLI assistant — pulled from unstable for faster updates.
+    # Agentic CLI assistant — comes from the nix-claude-code overlay
+    # (flake.nix), which tracks Anthropic's official native binary
+    # releases hourly. Bump with `nix flake update nix-claude-code`.
     # Unfree (Anthropic Commercial Terms); gated by allowUnfree above.
-    pkgs.unstable.claude-code
+    pkgs.claude-code
 
     # Secure Boot tooling. Used out-of-band (sbctl create-keys,
     # sbctl enroll-keys, sbctl status/verify); the lanzaboote module

@@ -72,7 +72,7 @@
     pciutils
     usbutils
     smartmontools
-    pkgs.unstable.claude-code
+    pkgs.claude-code
   ];
 
   systemd.tmpfiles.rules = [
