@@ -594,12 +594,21 @@
           # bundled binary is a fallback; that project's devShell puts its own
           # `metals` earlier on PATH (nixvim appends its bundle as a suffix).
           metals.enable = true;
-          # OCaml — for the type-driven-mini-ml educational project. Same
-          # PATH-suffix pattern as metals: the bundled `ocaml-lsp` is a
-          # fallback, but that project's devShell puts its own `ocamllsp`
-          # (built against the project's OCaml 5.x) earlier on PATH, so the
-          # version-matched one wins inside the devShell.
-          ocamllsp.enable = true;
+          # OCaml — for the type-driven-mini-ml educational project.
+          # `package = null` is load-bearing: ocamllsp reads the project's
+          # compiled `.cmi` files and MUST be built with the exact same OCaml
+          # compiler version as the project. nixvim's bundled ocaml-lsp is
+          # built against nixpkgs' default OCaml and gets *prepended* to
+          # nvim's PATH, so it would shadow the version-matched one. Setting
+          # the package to null bundles nothing, so bare `ocamllsp` resolves
+          # from PATH — i.e. the project devShell's copy (direnv-loaded),
+          # which is built against that project's OCaml. Consequence: OCaml
+          # LSP only works inside a devShell that provides ocamllsp, which is
+          # exactly what we want.
+          ocamllsp = {
+            enable = true;
+            package = null;
+          };
         };
         keymaps = {
           silent = true;
