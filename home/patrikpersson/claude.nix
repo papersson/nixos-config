@@ -155,4 +155,9 @@
   # writable XDG cache.
   home.packages = [ inputs.papershop.packages.${pkgs.system}.worklog ];
   home.file.".claude/skills/worklog/SKILL.md".source = "${inputs.papershop}/worklog/skills/worklog/SKILL.md";
+
+  # orchestrate — the meta-workflow skill (gate a task, scope it, fire a
+  # dynamic workflow) plus its invocation templates. Symlink the whole skill
+  # directory so templates/ resolves next to SKILL.md.
+  home.file.".claude/skills/orchestrate".source = "${inputs.papershop}/orchestrate/skills/orchestrate";
 }
