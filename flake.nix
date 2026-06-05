@@ -57,11 +57,11 @@
       };
     };
 
-    # worklog — query Claude Code transcripts as a work history. Consumed
-    # natively (home.packages + the agent file), not via the plugin system;
-    # follows our nixpkgs so duckdb comes from the same 25.11 set.
-    worklog = {
-      url = "github:papersson/worklog";
+    # papershop — my Claude Code plugin marketplace. We consume the worklog
+    # package natively (home.packages + its skill file), not via the plugin
+    # system; follows our nixpkgs so duckdb comes from the same 25.11 set.
+    papershop = {
+      url = "github:papersson/papershop";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -94,7 +94,7 @@
           home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "hm-bak";
           # Thread flake inputs into home modules (claude.nix consumes
-          # inputs.worklog). NixOS specialArgs don't reach HM modules.
+          # inputs.papershop). NixOS specialArgs don't reach HM modules.
           home-manager.extraSpecialArgs = { inherit inputs; };
           home-manager.sharedModules = [
             sops-nix.homeManagerModules.sops
@@ -141,7 +141,7 @@
           home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "hm-bak";
           # Thread flake inputs into home modules (claude.nix consumes
-          # inputs.worklog). NixOS specialArgs don't reach HM modules.
+          # inputs.papershop). NixOS specialArgs don't reach HM modules.
           home-manager.extraSpecialArgs = { inherit inputs; };
           home-manager.sharedModules = [
             sops-nix.homeManagerModules.sops

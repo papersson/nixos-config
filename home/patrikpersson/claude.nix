@@ -148,10 +148,11 @@
   };
 
   # worklog — the `worklog` CLI (DuckDB-indexed query over Claude Code
-  # transcripts) plus its driving subagent. Native nix consumption: a
-  # binary on PATH and the agent file, no plugin/marketplace/hook. The
-  # script reads WORKLOG_DB / WORKLOG_DUCKDB_EXTENSION_DIR, both set by
-  # the flake's wrapper to a writable XDG cache.
-  home.packages = [ inputs.worklog.packages.${pkgs.system}.worklog ];
-  home.file.".claude/agents/worklog.md".source = "${inputs.worklog}/agents/worklog.md";
+  # transcripts) plus its driving skill, from the papershop marketplace.
+  # Native nix consumption: a binary on PATH and the skill file, no
+  # plugin/marketplace/hook. The script reads WORKLOG_DB /
+  # WORKLOG_DUCKDB_EXTENSION_DIR, both set by the flake's wrapper to a
+  # writable XDG cache.
+  home.packages = [ inputs.papershop.packages.${pkgs.system}.worklog ];
+  home.file.".claude/skills/worklog/SKILL.md".source = "${inputs.papershop}/worklog/skills/worklog/SKILL.md";
 }

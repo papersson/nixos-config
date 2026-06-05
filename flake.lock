@@ -300,6 +300,26 @@
         "type": "github"
       }
     },
+    "papershop": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1780687393,
+        "narHash": "sha256-dYGocTuQUf18DmuwDwRVPU7lh29RWS3mRzUinBm1byQ=",
+        "owner": "papersson",
+        "repo": "papershop",
+        "rev": "4ecace150c496bd53c9138e2acf93e1d99e91f99",
+        "type": "github"
+      },
+      "original": {
+        "owner": "papersson",
+        "repo": "papershop",
+        "type": "github"
+      }
+    },
     "pre-commit": {
       "inputs": {
         "flake-compat": "flake-compat",
@@ -333,8 +353,8 @@
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
         "nixvim": "nixvim",
+        "papershop": "papershop",
         "sops-nix": "sops-nix",
-        "worklog": "worklog",
         "zen-browser": "zen-browser"
       }
     },
@@ -406,26 +426,6 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
-        "type": "github"
-      }
-    },
-    "worklog": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1780132595,
-        "narHash": "sha256-w8ggiN7Ihp6/E7NnX5I3haI6aIu1SSUJUaczhLBT56g=",
-        "owner": "papersson",
-        "repo": "worklog",
-        "rev": "ff06ad83245646c9038b7e58e87f1484a7a15a4c",
-        "type": "github"
-      },
-      "original": {
-        "owner": "papersson",
-        "repo": "worklog",
         "type": "github"
       }
     },
