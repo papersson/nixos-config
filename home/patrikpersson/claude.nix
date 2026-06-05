@@ -160,4 +160,8 @@
   # dynamic workflow) plus its invocation templates. Symlink the whole skill
   # directory so templates/ resolves next to SKILL.md.
   home.file.".claude/skills/orchestrate".source = "${inputs.papershop}/orchestrate/skills/orchestrate";
+
+  # prose — style-only rewrite + teaching review, grounded in reference.md.
+  # Symlink the whole skill dir so reference.md resolves next to SKILL.md.
+  home.file.".claude/skills/prose".source = "${inputs.papershop}/prose/skills/prose";
 }

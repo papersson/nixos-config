@@ -307,11 +307,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1780688146,
-        "narHash": "sha256-A0RgKtBsQX9g87uuBozQ1AN74lDb62MRo9BhA6cNpXg=",
+        "lastModified": 1780691459,
+        "narHash": "sha256-CRLoW0MDwtj9UOn3OEjdkn4omFcrKPCvODU+E4hd/qo=",
         "owner": "papersson",
         "repo": "papershop",
-        "rev": "bea0ce9e3f7d67f544fc5a088d2bc060595c2b40",
+        "rev": "1da81bd20e0265753a5d444d2e1c5f0f5515baa9",
         "type": "github"
       },
       "original": {
