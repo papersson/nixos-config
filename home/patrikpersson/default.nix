@@ -234,6 +234,9 @@
   # Fall back to other completers when carapace lacks a native one.
   home.sessionVariables = {
     CARAPACE_BRIDGES = "zsh,fish,bash,inshellisense";
+    # agent-browser's `install` downloads a Chrome-for-Testing binary that
+    # won't run on NixOS (no FHS dynamic linker); point it at nix chromium.
+    AGENT_BROWSER_EXECUTABLE_PATH = "${pkgs.chromium}/bin/chromium";
   };
 
   home.packages = with pkgs; [
@@ -245,5 +248,7 @@
     nerd-fonts.jetbrains-mono
     sops
     tmux
+    unstable.agent-browser
+    chromium
   ];
 }
