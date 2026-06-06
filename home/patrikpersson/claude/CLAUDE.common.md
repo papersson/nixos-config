@@ -22,6 +22,10 @@
 - Verify changes (run the test, type-check, rebuild). Don't assume.
 - Fail fast with clear messages. Don't swallow errors silently.
 
+## Verification
+
+**Verify before you trust.** For any agentic work, define the check before doing the work: write the prompt, command, or test that would prove the task is done, and treat passing it as the goal. The work is finished when the check passes, not when you stop. Climb the signal hierarchy and use the highest rung with ground truth: a deterministic signal (tests, types, lint, build, a tool you can drive) over a domain verification skill, over an adversarial rubric, over asking a human. Prefer a tool call to an LLM judge whenever ground truth exists. Be honest when something is only softly verifiable, like taste: use a rubric, never fake a green check. A backgrounded agent that hits a decision it cannot make from the brief returns the decision to the human rather than guessing.
+
 ## Shared working trees
 
 Multiple agents — and the user — may be working in the same repository at the same time, so the working tree can shift under you mid-task.
