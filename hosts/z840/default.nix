@@ -28,7 +28,17 @@
     }];
   };
   networking.defaultGateway = "192.168.1.1";
-  networking.nameservers = [ "192.168.1.1" "1.1.1.1" "9.9.9.9" ];
+  # Cloudflare first, not the Telia router (192.168.1.1): Swedish ISPs
+  # DNS-block torrent indexers at their resolver, and glibc stops at the first
+  # nameserver that answers — so a blocking resolver in front shadows the rest.
+  # Prowlarr (on the host) needs these to resolve. 9.9.9.9 is a non-Telia
+  # fallback. The host has no usable IPv6, so no v6 resolver is listed.
+  networking.nameservers = [ "1.1.1.1" "1.0.0.1" "9.9.9.9" ];
+  # Write /etc/resolv.conf statically from the list above. Without this,
+  # resolvconf lets a transient boot-time subscriber prepend the Telia
+  # resolver, which shadows Cloudflare (glibc stops at the first responder)
+  # and re-blocks the indexers. A static-IP server needs no dynamic resolvconf.
+  networking.resolvconf.enable = false;
 
   time.timeZone = "Europe/Stockholm";
   i18n.defaultLocale = "en_US.UTF-8";
@@ -149,6 +159,13 @@
 
     sonarr.enable = true;
     radarr.enable = true;
+    # Prowlarr runs on the host, NOT in the VPN namespace. Routing it through
+    # Mullvad doesn't work: Mullvad force-redirects all port-53 DNS to its own
+    # resolver, which filters the major torrent indexers, and only DoH (443)
+    # escapes that. Rather than run a DoH proxy inside the namespace, we resolve
+    # on the host via Cloudflare (see networking.nameservers) and accept that
+    # indexer lookups ride the ISP line. Downloads still tunnel through Mullvad
+    # (qBittorrent below) — that's the part that must never touch the bare IP.
     prowlarr.enable = true;
     bazarr.enable = true;
     qbittorrent = {
@@ -156,6 +173,14 @@
       vpn.enable = true;
     };
   };
+
+  # FlareSolverr — headless-browser proxy that solves the Cloudflare "are you
+  # a bot" challenge for Prowlarr. Most public indexers (1337x, TorrentGalaxy,
+  # …) sit behind it, and a plain HTTP client can't pass the JS challenge.
+  # Listens on localhost:8191; Prowlarr uses it as a tagged indexer proxy.
+  # Runs on the host alongside Prowlarr (indexer access is already on the ISP
+  # line per the nixarr notes above); not firewall-exposed.
+  services.flaresolverr.enable = true;
 
   system.stateVersion = "25.11";
 }
