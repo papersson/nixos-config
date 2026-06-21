@@ -72,8 +72,25 @@ value for almost anything that isn't bulk sequential reads.
 
 Datasets (`zfs list -r tank`):
 
-- `tank/media`, `tank/media/movies`, `tank/media/tv` — Jellyfin source
-  (recordsize=1M; weekly snapshots)
+- `tank/media` — **single** dataset (recordsize=1M; weekly snapshots).
+  Holds both the qBittorrent download dir (`/tank/media/qbittorrent`) and
+  the organized library (`/tank/media/library/{movies,shows}`) that
+  Jellyfin reads. Deliberately *not* split into child datasets: nixarr's
+  *arr import hardlinks the download into the library, and **hardlinks
+  cannot cross ZFS datasets** — one dataset = one filesystem = instant
+  hardlink + atomic move with zero extra space. The cost is uniform
+  recordsize and weekly snapshots that also cover in-progress torrents;
+  both are cheap. (The earlier `tank/media/{movies,tv}` + `tank/downloads`
+  split was retired in Phase 2 for exactly this reason.)
+- `tank/nixarr` — *arr SQLite state, nixarr's `stateDir` (recordsize=128K;
+  aggressive snapshots, same template as jellyfin/config)
 - `tank/jellyfin`, `tank/jellyfin/config`, `tank/jellyfin/cache` —
   Jellyfin state (recordsize=128K; aggressive snapshots on config)
-- `tank/downloads` — qBittorrent landing zone (Phase 2; recordsize=128K)
+
+> **Gotcha — new dataset + its consumer in one rebuild.** If you `zfs
+> create` a dataset and enable a service that writes to it in the *same*
+> `nixos-rebuild`, `systemd-tmpfiles` can run before the dataset mounts and
+> create the service dirs on the (soon-shadowed) mountpoint, so the service
+> fails to find them. Fix: `sudo systemd-tmpfiles --create` with the dataset
+> mounted, then re-switch. It self-heals on the next boot (mounts precede
+> tmpfiles), so it only bites on the introducing rebuild.

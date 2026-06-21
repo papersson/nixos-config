@@ -13,3 +13,11 @@ creation_rules:
       - age:
           - *user_persson
           - *host_z840
+  # Mullvad WireGuard config for nixarr's VPN namespace — whole-file (binary)
+  # secret, decrypted at activation by the z840 host key. Separate file rather
+  # than a key in z840.yaml because it's a complete config file, not a scalar.
+  - path_regex: secrets/z840-wireguard\.conf$
+    key_groups:
+      - age:
+          - *user_persson
+          - *host_z840

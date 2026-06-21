@@ -52,14 +52,20 @@
   # Each dataset has `mountpoint=legacy` set during pool creation (see the
   # runbook). NixOS owns the mount points so they're declared in the flake
   # and systemd can derive service-to-mount dependencies automatically.
+  # `tank/media` is a SINGLE dataset (no movies/tv/downloads children) on
+  # purpose: nixarr's *arr import does an instant hardlink + atomic move from
+  # the qBittorrent download dir (`/tank/media/qbittorrent`) into the library
+  # (`/tank/media/library/...`), and hardlinks cannot cross ZFS datasets. One
+  # dataset = one filesystem = hardlinks work, so an imported file seeds with
+  # zero extra space. The cost is uniform recordsize=1M and that weekly
+  # snapshots also cover in-progress torrents — both acceptable. `tank/nixarr`
+  # holds the *arr SQLite state (pool-default 128K, snapshotted aggressively).
   fileSystems = {
-    "/tank/media"          = { device = "tank/media";          fsType = "zfs"; };
-    "/tank/media/movies"   = { device = "tank/media/movies";   fsType = "zfs"; };
-    "/tank/media/tv"       = { device = "tank/media/tv";       fsType = "zfs"; };
-    "/tank/jellyfin"       = { device = "tank/jellyfin";       fsType = "zfs"; };
+    "/tank/media"           = { device = "tank/media";           fsType = "zfs"; };
+    "/tank/nixarr"          = { device = "tank/nixarr";          fsType = "zfs"; };
+    "/tank/jellyfin"        = { device = "tank/jellyfin";        fsType = "zfs"; };
     "/tank/jellyfin/config" = { device = "tank/jellyfin/config"; fsType = "zfs"; };
     "/tank/jellyfin/cache"  = { device = "tank/jellyfin/cache";  fsType = "zfs"; };
-    "/tank/downloads"      = { device = "tank/downloads";      fsType = "zfs"; };
   };
 
   # Monthly scrubs catch silent bit-rot before it becomes data loss.
@@ -68,14 +74,17 @@
   services.zfs.autoScrub.enable = true;
 
   # Snapshot policy per `docs/media-server.md`:
-  # - tank/jellyfin/config: SQLite + plugins, frequent small writes — snapshot aggressively.
-  # - tank/media (recursive): bulk media, weekly only; raidz2 covers drive loss, snapshots
-  #   here only protect against accidental delete / corruption from above.
-  # - tank/jellyfin/cache, tank/downloads: not snapshotted (regenerable / churn).
+  # - app-state datasets (tank/jellyfin/config, tank/nixarr): SQLite + small
+  #   frequent writes — snapshot aggressively (hourly/daily/weekly).
+  # - tank/media: bulk media + qBittorrent download dir, weekly only; raidz2
+  #   covers drive loss, snapshots here only guard against accidental delete /
+  #   corruption from above. Weekly cadence also sweeps up in-progress torrents,
+  #   which is cheap and self-pruning at 4 weeks.
+  # - tank/jellyfin/cache: not snapshotted (regenerable).
   services.sanoid = {
     enable = true;
     templates = {
-      jellyfin-config = {
+      app-state = {
         hourly = 24;
         daily = 7;
         weekly = 4;
@@ -89,11 +98,9 @@
       };
     };
     datasets = {
-      "tank/jellyfin/config".useTemplate = [ "jellyfin-config" ];
-      "tank/media" = {
-        useTemplate = [ "media-weekly" ];
-        recursive = true;
-      };
+      "tank/jellyfin/config".useTemplate = [ "app-state" ];
+      "tank/nixarr".useTemplate = [ "app-state" ];
+      "tank/media".useTemplate = [ "media-weekly" ];
     };
   };
 }

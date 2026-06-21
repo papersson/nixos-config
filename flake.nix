@@ -74,9 +74,19 @@
       url = "github:ryoppippi/nix-claude-code";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # nixarr — the *arr media-automation suite (Sonarr/Radarr/Prowlarr/Bazarr/
+    # Transmission) as a NixOS module, Phase 2 of docs/media-server.md. Bundles
+    # Maroka-chan/VPN-Confinement, which provides the network namespace that
+    # confines the torrent client to the Mullvad WireGuard tunnel. Pins
+    # nixos-25.11 upstream, so we dedupe on our nixpkgs.
+    nixarr = {
+      url = "github:nix-media-server/nixarr";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix, lanzaboote, nixvim, zen-browser, nix-claude-code, ... }@inputs: {
+  outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix, lanzaboote, nixvim, zen-browser, nix-claude-code, nixarr, ... }@inputs: {
     nixosConfigurations.t14 = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
       specialArgs = { inherit inputs; };
@@ -135,6 +145,7 @@
         nixos-hardware.nixosModules.common-pc-ssd
         nixos-hardware.nixosModules.common-cpu-intel
         sops-nix.nixosModules.sops
+        nixarr.nixosModules.default
         home-manager.nixosModules.home-manager
         {
           home-manager.useGlobalPkgs = true;

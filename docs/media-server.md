@@ -2,11 +2,11 @@
 
 Spec doc for the first major homelab milestone: a self-hosted media server with full automation, replacing the Netflix-style consumption pattern. Scope is movies and TV (music / photos deferred to separate stacks later).
 
-Status (2026-05-24):
+Status (2026-06-21):
 
-- **Phase 0 (storage foundation)** — complete. 4× HC550 burned in clean (zero reallocated/pending/uncorrectable sectors across all four). `tank` pool created as raidz2 (chosen over raidz1 — see Decisions table), 28.1 TiB usable, `ashift=12`, dataset-level `compression=lz4 atime=off xattr=sa acltype=posixacl normalization=formD dnodesize=auto`. Declarative side at `modules/nixos/zfs-tank.nix`: import-only, `fileSystems` entries for all seven datasets (mountpoint=legacy), sanoid snapshot policy per spec, monthly `services.zfs.autoScrub`, and a `tank-drive-erc.service` that sets SCT ERC=7.0s on every boot (volatile setting). Imperative side at `docs/runbooks/zfs-pool-creation.md` (executed once; never re-run).
-- **Phase 1 (Jellyfin LAN-only)** — software complete. `services.jellyfin` in `hosts/z840/default.nix` with `dataDir=/tank/jellyfin/config`, `cacheDir=/tank/jellyfin/cache`, `openFirewall=true`. Movies + Shows libraries configured (Country/Region: United States; metadata refresh: every 30 days; no Trickplay / Chapter Images). Test movie indexed with TMDB metadata. **Step 4 pending**: 4K direct-play test on actual TV client — blocked on real 4K HEVC content (Phase 2 provides this automatically) and a TV client (Apple TV / Shield / smart TV).
-- **Phase 2 (*arr stack via nixarr)** — not started. Plan: sops bootstrap on z840 → Mullvad signup (user) → `nixarr` flake input + VPN namespace → Sonarr / Radarr / Prowlarr / Bazarr / qBittorrent → validate with 2–3 public trackers. Usenet (Phase 2.5) deferred until public-tracker validation passes.
+- **Phase 0 (storage foundation)** — complete. 4× HC550 burned in clean (zero reallocated/pending/uncorrectable sectors across all four). `tank` pool created as raidz2 (chosen over raidz1 — see Decisions table), 28.1 TiB usable, `ashift=12`, dataset-level `compression=lz4 atime=off xattr=sa acltype=posixacl normalization=formD dnodesize=auto`. Declarative side at `modules/nixos/zfs-tank.nix`: import-only, `fileSystems` entries (mountpoint=legacy), sanoid snapshot policy, monthly `services.zfs.autoScrub`, and a `tank-drive-erc.service` that sets SCT ERC=7.0s on every boot (volatile setting). Imperative side at `docs/runbooks/zfs-pool-creation.md` (executed once; never re-run). **Dataset layout revised in Phase 2** (see below): `tank/media` is now a single dataset and `tank/media/{movies,tv}` + `tank/downloads` were retired in favour of nixarr's hardlink-friendly single-root model; `tank/nixarr` added for *arr state. See `docs/storage.md`.
+- **Phase 1 (Jellyfin LAN-only)** — software complete. `services.jellyfin` in `hosts/z840/default.nix` with `dataDir=/tank/jellyfin/config`, `cacheDir=/tank/jellyfin/cache`, `openFirewall=true`. Test movie indexed with TMDB metadata. **Library paths must be repointed** to `/tank/media/library/{movies,shows}` (the old `/tank/media/{movies,tv}` datasets are gone). **Step 4 still pending**: 4K direct-play test on actual TV client — needs real 4K HEVC content (Phase 2 will supply) and a TV client (Apple TV / Shield / smart TV).
+- **Phase 2 (*arr stack via nixarr)** — in progress; VPN plumbing verified. `nixarr` flake input + module wired into `hosts/z840`. Mullvad WireGuard config encrypted at `secrets/z840-wireguard.conf` (binary sops secret, decrypted at activation by the host key). qBittorrent confined to the `wg` namespace; **confinement verified** — host exits on the ISP (Sweden) while the qBittorrent namespace exits Mullvad (Germany/Frankfurt, `mullvad_exit_ip:true`). Sonarr / Radarr / Prowlarr / Bazarr running on the host. **Remaining**: repoint Jellyfin libraries; Prowlarr indexers (2–3 public) synced to Sonarr/Radarr; *arr download-client + root folders (`/tank/media/library/{movies,shows}`) + dual-quality profiles; validate end-to-end with public trackers. Usenet (Phase 2.5) deferred until that passes.
 - **Phases 3, 4** — not started.
 
 ## Context
@@ -42,13 +42,12 @@ Before any service deploys, the storage tier must exist:
 
 - **HDD burn-in** on the 4× HC550 16 TB drives. Run `smartctl -t long /dev/sd{a,b,c,d}` in parallel (~18–30h each). Confirm zero reallocated sectors / pending sectors after. If any drive flags, RMA before pool creation.
 - **ZFS pool `tank`** — raidz2 across the four drives (chosen over raidz1 because a resilver window on 16 TB drives is ~18–30h, during which raidz1 has zero parity; raidz2 keeps one parity drive during resilver at a 33% capacity cost). `ashift=12`, `recordsize=1M` set on the `tank/media` dataset for bulk sequential reads (default 128K kept on `tank/jellyfin` for the SQLite config).
-- **Datasets**:
-  - `tank/media/movies` — Radarr root
-  - `tank/media/tv` — Sonarr root
+- **Datasets** (revised in Phase 2 for nixarr's hardlink model — see `docs/storage.md`):
+  - `tank/media` — **single** dataset (`recordsize=1M`). Holds both the qBittorrent download dir (`/tank/media/qbittorrent`) and the organized library (`/tank/media/library/{movies,shows}`). They share one filesystem so *arr import is an instant hardlink + atomic move, not a copy — the file seeds from the library with zero extra space. Hardlinks cannot cross ZFS datasets, which is why downloads and library are *not* split into separate datasets.
+  - `tank/nixarr` — *arr SQLite state (`stateDir`; pool-default 128K, snapshot target)
   - `tank/jellyfin/config` — Jellyfin SQLite + plugins (frequent small writes; snapshot target)
   - `tank/jellyfin/cache` — metadata thumbnails (regenerable; snapshots skipped)
-  - `tank/downloads` — qBittorrent incomplete + complete dirs (chmod-compatible with Sonarr/Radarr import)
-- **Snapshot policy**: hourly on `tank/jellyfin/config` (kept 24h), daily kept 7d, weekly kept 4w. Media datasets snapshot weekly only (raidz2 already covers drive loss). No offsite backup until phase 2.
+- **Snapshot policy**: hourly on `tank/jellyfin/config` + `tank/nixarr` (kept 24h), daily kept 7d, weekly kept 4w. `tank/media` snapshots weekly only (raidz2 already covers drive loss; the weekly sweep also catches in-progress torrents, cheap and self-pruning). No offsite backup until phase 2.
 
 GPU stays in the box but is not loaded — `hardware.nvidia` is not enabled. M5000 reserved for a future Windows VM via libvirt + PCIe passthrough.
 
@@ -71,13 +70,15 @@ GPU stays in the box but is not loaded — `hardware.nvidia` is not enabled. M50
 
 ### Phase 2 — *arr stack via nixarr
 
-1. Add nixarr as a flake input. Pin to a tag, not master.
-2. Configure `nixarr.enable = true`, `nixarr.vpn.enable = true` with Mullvad WireGuard config (key in sops-encrypted `secrets/z840.yaml`).
-3. Enable Sonarr, Radarr, Prowlarr, Bazarr, Recyclarr. qBittorrent inside the VPN namespace.
-4. Sonarr/Radarr root folders → `tank/media/{tv,movies}`. Download client → qBittorrent, completed dir → `tank/downloads/complete`.
-5. Recyclarr config syncs TRaSH-guide quality profiles for both 1080p and 2160p (4K). Sonarr/Radarr profiles configured to grab 4K Remux + 1080p Web-DL per title.
-6. Bazarr: English subtitles, OpenSubtitles + Subscene providers.
-7. Prowlarr: add a few public trackers initially. Confirm indexer searches return results through the VPN namespace.
+1. ✅ Add nixarr as a flake input (`github:nix-media-server/nixarr`, `inputs.nixpkgs.follows`). Bundles Maroka-chan/VPN-Confinement. Module imported via `nixarr.nixosModules.default` in `flake.nix`.
+2. ✅ `nixarr.enable = true`, `mediaDir = /tank/media`, `stateDir = /tank/nixarr`, `mediaUsers = [ "jellyfin" ]`. `nixarr.vpn.enable = true` + `wgConf = config.sops.secrets."wireguard-mullvad".path`, `accessibleFrom = [ "192.168.1.0/24" ]`. Mullvad config is a binary sops secret at `secrets/z840-wireguard.conf` (decrypted at activation by the SSH host key — no operator key needed).
+3. ✅ Sonarr, Radarr, Prowlarr, Bazarr enabled on the host; qBittorrent with `vpn.enable = true` (only the downloader is confined — the spec's choice). Confinement verified: host exits Sweden/ISP, qBittorrent namespace exits Germany/Mullvad. Recyclarr deferred.
+4. ⬜ Sonarr/Radarr root folders → `/tank/media/library/{shows,movies}`. Download client → qBittorrent via nixarr's localhost proxy. (qBittorrent default download dir is `/tank/media/qbittorrent`, same dataset as the library, so imports hardlink.)
+5. ⬜ Quality profiles: 4K Remux + 1080p Web-DL per title (dual-quality). Recyclarr/TRaSH sync optional, can layer later.
+6. ⬜ Bazarr: English subtitles, OpenSubtitles provider.
+7. ⬜ Prowlarr: add 2–3 public indexers, sync to Sonarr/Radarr, confirm searches return results.
+
+> **Gotcha (first switch only):** `tank/nixarr` was created in the same `nixos-rebuild` as the services that use it, so `systemd-tmpfiles` created the service dirs *before* the dataset mounted — the mount then shadowed them and qBittorrent/Prowlarr failed (`ensureDirectoryExists` abort / `226/NAMESPACE`). Fix was `sudo systemd-tmpfiles --create` (with the dataset mounted) then re-`switch`. Does not recur: on a normal boot, `local-fs.target` mounts `tank/nixarr` before tmpfiles runs.
 
 ### Phase 3 — Remote access via Tailscale
 

@@ -109,5 +109,53 @@
     cacheDir = "/tank/jellyfin/cache";
   };
 
+  # sops: z840 derives its age identity from the SSH host key, so the Mullvad
+  # WireGuard config decrypts at activation with no operator key present. The
+  # secret is a whole-file (binary) config, encrypted to host + user in
+  # secrets/z840-wireguard.conf (see .sops.yaml). nixarr reads the decrypted
+  # path to bring up the VPN namespace.
+  sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+  sops.secrets."wireguard-mullvad" = {
+    sopsFile = ../../secrets/z840-wireguard.conf;
+    format = "binary";
+  };
+
+  # nixarr — *arr automation suite, Phase 2 of docs/media-server.md.
+  #
+  # Storage model (see modules/nixos/zfs-tank.nix): mediaDir is the single
+  # `tank/media` dataset so downloads (`/tank/media/qbittorrent`) and the
+  # organized library (`/tank/media/library/...`) share one filesystem and
+  # *arr imports are instant hardlinks, not copies. stateDir lives on its own
+  # snapshot-protected `tank/nixarr` dataset.
+  #
+  # VPN: only qBittorrent is confined to the Mullvad WireGuard namespace (the
+  # spec's choice — the downloader is the only thing that must never touch the
+  # bare WAN IP). The *arr apps run on the host and reach qBittorrent's API
+  # through nixarr's localhost proxy. accessibleFrom lets the LAN reach the
+  # confined qBittorrent web UI.
+  nixarr = {
+    enable = true;
+    mediaDir = "/tank/media";
+    stateDir = "/tank/nixarr";
+
+    # Let Jellyfin (separate service) read the media group's library.
+    mediaUsers = [ "jellyfin" ];
+
+    vpn = {
+      enable = true;
+      wgConf = config.sops.secrets."wireguard-mullvad".path;
+      accessibleFrom = [ "192.168.1.0/24" ];
+    };
+
+    sonarr.enable = true;
+    radarr.enable = true;
+    prowlarr.enable = true;
+    bazarr.enable = true;
+    qbittorrent = {
+      enable = true;
+      vpn.enable = true;
+    };
+  };
+
   system.stateVersion = "25.11";
 }
