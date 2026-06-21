@@ -164,4 +164,8 @@
   # prose — style-only rewrite + teaching review, grounded in reference.md.
   # Symlink the whole skill dir so reference.md resolves next to SKILL.md.
   home.file.".claude/skills/prose".source = "${inputs.papershop}/prose/skills/prose";
+
+  # performance-engineering — perf analysis/optimization skill plus its
+  # modules/. Symlink the whole skill dir so modules/ resolves next to SKILL.md.
+  home.file.".claude/skills/performance-engineering".source = "${inputs.papershop}/performance-engineering/skills/performance-engineering";
 }
