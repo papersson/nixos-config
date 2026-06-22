@@ -174,6 +174,15 @@
     };
   };
 
+  # Make qBittorrent's downloads group-writable so the *arr services (all in
+  # the `media` group) can HARDLINK them into the library instead of copying.
+  # The kernel's fs.protected_hardlinks=1 only lets you hardlink a file you own
+  # or can write; nixarr's default umask (0022) yields 0644 downloads (group
+  # read-only), so Radarr/Sonarr fall back to a full copy — defeating the
+  # single-dataset layout. 0002 → 0664, group `media` can hardlink. Applies to
+  # future downloads only. (Standard *arr/TRaSH-guide hardlink fix.)
+  systemd.services.qbittorrent.serviceConfig.UMask = lib.mkForce "0002";
+
   # FlareSolverr — headless-browser proxy that solves the Cloudflare "are you
   # a bot" challenge for Prowlarr. Most public indexers (1337x, TorrentGalaxy,
   # …) sit behind it, and a plain HTTP client can't pass the JS challenge.
