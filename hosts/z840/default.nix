@@ -99,6 +99,23 @@
     };
   };
 
+  # Tailscale — private mesh network across my own devices (Phase 3 of
+  # docs/media-server.md). Lets the phone/laptop reach z840 from anywhere
+  # (Jellyfin over cellular) without exposing ports to the public internet.
+  # Auth is a one-time interactive `sudo tailscale up` (no auth-key secret).
+  services.tailscale = {
+    enable = true;
+    openFirewall = true; # UDP 41641 for direct (non-relayed) connections
+  };
+
+  # Trust the tailnet interface: every device on my tailnet can reach all of
+  # z840's ports, including the *arr web UIs (8989/7878/9696/6767) and
+  # qBittorrent — so management no longer needs an SSH port-forward, while the
+  # LAN firewall stays closed to everything but SSH + Jellyfin. Safe because
+  # the tailnet is solo (only my own authenticated devices). Revisit if other
+  # people are ever added to the tailnet (Phase 4).
+  networking.firewall.trustedInterfaces = [ "tailscale0" ];
+
   # Jellyfin media server — Phase 1 of docs/media-server.md.
   #
   # Naming caveat: the dataset is `tank/jellyfin/config` (per the spec) but
