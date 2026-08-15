@@ -24,9 +24,11 @@ Flake configuring two hosts for a single user (`patrikpersson`): the `t14` Think
 1. Edit `.nix` files (or assets under `home/patrikpersson/`)
 2. **Stage new files first**: `git add path/to/new.nix`. The flake evaluator only sees git-tracked files; untracked paths fail with `path does not exist`.
 3. Validate: `nix flake check`
-4. Apply: `nh os switch` on the host being rebuilt (preferred — closure diff + nice output), or `sudo nixos-rebuild switch --flake <flake-path>#<host>`. Either way, Claude must hand off — no sudo from tools.
-   - On t14: flake lives at `/etc/nixos`, so `nh os switch` Just Works and the long-form is `sudo nixos-rebuild switch --flake /etc/nixos#t14`.
-   - On z840: flake lives at `~/nixos-config`, so the long-form is `sudo nixos-rebuild switch --flake ~/nixos-config#z840`. (`programs.nh.flake` is set to that path so `nh os switch` works too.)
+4. Apply: `nh os switch` on the host being rebuilt (preferred — closure diff + nice output), or `sudo nixos-rebuild switch --flake <flake-path>#<host>`.
+   - On t14: flake lives at `/etc/nixos`, so `nh os switch` Just Works and the long-form is `sudo nixos-rebuild switch --flake /etc/nixos#t14`. Claude must hand off here — no sudo from tools.
+   - On z840: flake lives at `~/nixos-config`. **Claude CAN rebuild z840 itself**: the operator account has scoped passwordless sudo (see `security.sudo.extraRules` in `hosts/z840/default.nix`) covering `nixos-rebuild switch/test/boot`, media-stack service restarts, and read-only diagnostics (incl. inside the VPN namespace). Use `sudo -n /run/current-system/sw/bin/nixos-rebuild switch --flake ~/nixos-config#z840` — **not `nh os switch`**, which escalates internally in a way the sudo rules don't match and prompts for a password. Destructive ops (rm/dd/mkfs as root, `zfs destroy`, `zpool` writes, reboot, sops keys) are deliberately NOT granted and remain a hand-off.
+   - z840 health: run `media-health` (Nix-managed script, on PATH) for an on-demand check of the whole media stack — services, a *real* VPN test (completed handshake + Mullvad exit + relay still live), storage, app endpoints. Exit 0 = all green. A "dead" tunnel looks identical to a healthy one from the outside; this is the check that tells the truth.
+   - z840 gotcha: the interactive shell aliases `cp`/`mv`/`rm` to `-i`, so scripted overwrites silently skip on the prompt. For file replacement from tools use the plain binary (`/run/current-system/sw/bin/cp -f … < /dev/null`) and **verify the target changed before shredding any source**.
 5. Rollback: pick an older generation at the bootloader, or `sudo nixos-rebuild switch --rollback`.
 
 ## Repo conventions

@@ -157,7 +157,88 @@
     ];
   };
 
-  environment.systemPackages = with pkgs; [
+  # `media-health` — on-demand health check for the whole media stack. Run it
+  # whenever you wonder "is everything OK?". Every check is a *fact*, not a
+  # proxy: the VPN test in particular verifies a completed WireGuard handshake
+  # and a real Mullvad exit, because a dead tunnel looks identical to a live
+  # one from the outside (services "active", endpoint pingable) — that exact
+  # blind spot hid a retired relay for ~8 weeks. Exit code 0 = all green.
+  # Uses the scoped sudo rules above for the namespace + service checks.
+  environment.systemPackages = let
+    mediaHealth = pkgs.writeShellApplication {
+      name = "media-health";
+      runtimeInputs = with pkgs; [ curl jq iproute2 wireguard-tools coreutils gnugrep gawk ];
+      text = ''
+        sw=/run/current-system/sw/bin
+        wgbin=${pkgs.wireguard-tools}/bin/wg
+        fail=0
+        ok()   { printf '  \033[32m✓\033[0m %s\n' "$1"; }
+        bad()  { printf '  \033[31m✗\033[0m %s\n' "$1"; fail=1; }
+        warn() { printf '  \033[33m!\033[0m %s\n' "$1"; }
+        hdr()  { printf '\n\033[1m%s\033[0m\n' "$1"; }
+
+        # ---------- services ----------
+        hdr "Services"
+        for u in wg qbittorrent sonarr radarr prowlarr bazarr seerr jellyfin flaresolverr tailscaled; do
+          if [ "$(systemctl is-active "$u.service" 2>/dev/null)" = active ]; then ok "$u"; else bad "$u is $(systemctl is-active "$u.service" 2>/dev/null)"; fi
+        done
+
+        # ---------- VPN tunnel: the check that actually matters ----------
+        hdr "VPN tunnel (Mullvad)"
+        hs=$(sudo -n "$sw/ip" netns exec wg "$wgbin" show wg0 latest-handshakes 2>/dev/null | awk '{print $2}')
+        now=$(date +%s)
+        if [ -z "''${hs:-}" ] || [ "$hs" = 0 ]; then
+          bad "no WireGuard handshake has EVER completed — the relay is not talking to us"
+          warn "likely: relay retired / key rejected / account lapsed. Check: mullvad.net/en/account, and whether the config's Endpoint is still in api.mullvad.net/www/relays/wireguard/"
+        else
+          age=$(( now - hs ))
+          if [ "$age" -le 180 ]; then ok "handshake $age s ago"; else bad "last handshake $age s ago (>3 min) — tunnel is stale"; fi
+        fi
+        rx=$(sudo -n "$sw/ip" netns exec wg "$wgbin" show wg0 transfer 2>/dev/null | awk '{print $2}')
+        if [ -n "''${rx:-}" ] && [ "$rx" -gt 0 ]; then ok "$rx bytes received through tunnel"; else bad "0 bytes received — nothing is coming back through the tunnel"; fi
+        exitjson=$(sudo -n "$sw/ip" netns exec wg curl -s --max-time 10 https://am.i.mullvad.net/json 2>/dev/null || true)
+        if [ -n "$exitjson" ] && [ "$(echo "$exitjson" | jq -r .mullvad_exit_ip)" = true ]; then
+          ok "exit: $(echo "$exitjson" | jq -r '"\(.ip)  \(.city), \(.country)"') (mullvad_exit_ip=true)"
+        else
+          bad "no internet inside the tunnel (curl to am.i.mullvad.net failed)"
+        fi
+        # leak guard: the HOST must NOT exit via mullvad
+        hostjson=$(curl -s --max-time 10 https://am.i.mullvad.net/json 2>/dev/null || true)
+        if [ -n "$hostjson" ]; then
+          if [ "$(echo "$hostjson" | jq -r .mullvad_exit_ip)" = false ]; then ok "host exits on ISP ($(echo "$hostjson" | jq -r .country)) — not leaking the other way"; else warn "host appears to exit via Mullvad — check routing"; fi
+        else warn "host has no internet?"; fi
+        # is the pinned relay still a live mullvad relay?
+        ep=$(sudo -n "$sw/ip" netns exec wg "$wgbin" show wg0 endpoints 2>/dev/null | awk '{print $2}' | cut -d: -f1)
+        if [ -n "''${ep:-}" ]; then
+          rel=$(curl -s --max-time 15 https://api.mullvad.net/www/relays/wireguard/ 2>/dev/null | jq -r --arg ip "$ep" '.[] | select(.ipv4_addr_in==$ip) | "\(.hostname) active=\(.active)"' 2>/dev/null || true)
+          if [ -n "$rel" ]; then ok "relay $ep is in Mullvad's live list ($rel)"; else bad "relay $ep is NOT in Mullvad's relay list — it was retired; rotate the wg config"; fi
+        fi
+
+        # ---------- downloads / storage ----------
+        hdr "Downloads & storage"
+        stuck=$(find /tank/media/qbittorrent/.incomplete -type f -mmin +120 2>/dev/null | wc -l)
+        if [ "$stuck" -eq 0 ]; then ok "no incomplete downloads untouched for >2h"; else warn "$stuck incomplete file(s) not written to in >2h (stalled torrents?)"; fi
+        used=$(zfs list -H -o used tank 2>/dev/null); avail=$(zfs list -H -o avail tank 2>/dev/null)
+        ok "tank: $used used, $avail free"
+        pool=$(zpool status -x 2>/dev/null); if [ "$pool" = "all pools are healthy" ]; then ok "zpool: healthy"; else bad "zpool: $pool"; fi
+
+        # ---------- app reachability (host) ----------
+        hdr "App endpoints"
+        for pair in "jellyfin:8096" "sonarr:8989" "radarr:7878" "prowlarr:9696" "bazarr:6767" "seerr:5055"; do
+          n=''${pair%%:*}; p=''${pair##*:}
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://localhost:$p" || true)
+          # any 2xx/3xx/401/403 = the app answered (3xx = redirect to login, healthy)
+          case "$code" in 2??|3??|401|403) ok "$n :$p (HTTP $code)";; *) bad "$n :$p not responding (HTTP ''${code:-none})";; esac
+        done
+        code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 5 http://192.168.15.1:8085 || true)
+        case "$code" in 200|401|403) ok "qbittorrent :8085 via VPN bridge (HTTP $code)";; *) bad "qbittorrent :8085 not responding (HTTP ''${code:-none})";; esac
+
+        echo
+        if [ "$fail" -eq 0 ]; then printf '\033[32m\033[1mALL GREEN\033[0m\n'; else printf '\033[31m\033[1mPROBLEMS FOUND — see ✗ above\033[0m\n'; fi
+        exit "$fail"
+      '';
+    };
+  in [ mediaHealth ] ++ (with pkgs; [
     git
     gh
     vim
@@ -170,7 +251,7 @@
     usbutils
     smartmontools
     pkgs.claude-code
-  ];
+  ]);
 
   systemd.tmpfiles.rules = [
     "d /etc/nixos 0755 patrikpersson users -"
