@@ -207,6 +207,19 @@
         if [ -n "$hostjson" ]; then
           if [ "$(echo "$hostjson" | jq -r .mullvad_exit_ip)" = false ]; then ok "host exits on ISP ($(echo "$hostjson" | jq -r .country)) — not leaking the other way"; else warn "host appears to exit via Mullvad — check routing"; fi
         else warn "host has no internet?"; fi
+        # DNS *inside* the namespace, via the resolver the apps actually use.
+        # A tunnel can pass traffic perfectly while DNS is black-holed (e.g. a
+        # 10.x resolver caught by the 10.0.0.0/8 -> LAN route) — then torrents
+        # show "0 seeds" on healthy swarms. Test the configured resolver
+        # explicitly and confirm it routes via wg0, not the LAN.
+        ns=$(sudo -n "$sw/ip" netns exec wg cat /etc/resolv.conf 2>/dev/null | awk '/^nameserver/{print $2; exit}')
+        if [ -n "''${ns:-}" ]; then
+          via=$(sudo -n "$sw/ip" netns exec wg ip route get "$ns" 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="dev") print $(i+1); exit}')
+          if [ "$via" = wg0 ]; then ok "namespace DNS $ns routes via wg0"; else bad "namespace DNS $ns routes via ''${via:-?} (NOT the tunnel) — lookups black-holed; use a non-10.x resolver in the wg config"; fi
+          if sudo -n "$sw/ip" netns exec wg getent hosts tracker.opentrackr.org >/dev/null 2>&1; then ok "namespace resolves tracker hostnames"; else bad "namespace cannot resolve tracker hostnames — torrents will show 0 seeds"; fi
+        else
+          bad "namespace has no nameserver configured"
+        fi
         # is the pinned relay still a live mullvad relay?
         ep=$(sudo -n "$sw/ip" netns exec wg "$wgbin" show wg0 endpoints 2>/dev/null | awk '{print $2}' | cut -d: -f1)
         if [ -n "''${ep:-}" ]; then

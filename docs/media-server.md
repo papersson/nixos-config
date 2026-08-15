@@ -86,6 +86,10 @@ GPU stays in the box but is not loaded — `hardware.nvidia` is not enabled. M50
 > 3. **Confining Prowlarr to the VPN did NOT help** (an abandoned approach): Mullvad force-redirects all port-53 DNS to its own resolver, which *also* filters these sites, and only DoH (443) escapes it. So Prowlarr stays on the host; only qBittorrent is tunnelled. Trade-off: indexer lookups ride the ISP line (metadata), downloads stay on Mullvad.
 > 4. **Cloudflare bot-challenge.** Once DNS resolved, indexers like 1337x returned a Cloudflare "are you a bot" page. `services.flaresolverr` (headless browser on `localhost:8191`) solves it; Prowlarr uses it as a tagged indexer proxy.
 
+> **Gotcha — qBittorrent's DNS black-holed inside the tunnel (Aug 2026).** Mullvad's resolver is `10.64.0.1`. VPN-Confinement routes all of `10.0.0.0/8` to the host/LAN (so confined apps can reach private nets), so qBittorrent's DNS queries left the tunnel and died: every tracker returned "Host not found"/"timed out" and healthy swarms showed **0 seeds**, while `curl` from inside the namespace still worked (different resolver path) — so the tunnel *looked* fine. Fix: `DNS = 1.1.1.1` in the wg config; a public resolver routes via `wg0`. Trackers are ordinary hostnames, so Cloudflare is fine — this is *not* the Prowlarr torrent-site-filtering case above. `media-health` now verifies the namespace resolver routes via `wg0` and can resolve a tracker.
+
+> **Gotcha — a wg.conf pins one relay (Aug 2026).** The Frankfurt relay chosen in June was retired by Mullvad; the address still answered pings, so every "endpoint reachable" check passed while no handshake ever completed (`0 B received`). Tunnel silently dead ~8 weeks. Rotated to `de-ber-wg-001`. `media-health` checks the pinned relay against `api.mullvad.net/www/relays/wireguard/`.
+
 ### Phase 3 — Remote access via Tailscale
 
 1. `services.tailscale.enable = true` on z840. Auth via tailscale CLI (one-time `tailscale up`).
