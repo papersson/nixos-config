@@ -78,6 +78,17 @@
 
       zstyle ':completion:*' use-cache on
       zstyle ':completion:*' cache-path ~/.zsh/cache
+
+      # ── claude-bump: pull the newest Claude Code ────────────────────
+      # Re-locks the nix-claude-code input (auto-bumps hourly upstream to
+      # Anthropic's latest release), rebuilds, then commits the lock only
+      # if the build succeeded — so a broken bump never lands in git.
+      # Subshell keeps the flake `cd` from leaking into the interactive cwd.
+      claude-bump() {
+        ( cd "$HOME/nixos-config" && nix flake update nix-claude-code ) || return 1
+        nh os switch || return 1
+        git -C "$HOME/nixos-config" commit -m "claude: bump nix-claude-code to latest" flake.lock
+      }
     '';
   };
 
