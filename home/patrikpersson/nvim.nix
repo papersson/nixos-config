@@ -461,6 +461,9 @@
           css
           diff
           dockerfile
+          eex
+          elixir
+          heex
           fish
           git_config
           git_rebase
@@ -557,6 +560,10 @@
             zig = [ "zigfmt" ];
             javascript = [ "prettier" ];
             typescript = [ "prettier" ];
+            # `mix format` reads the project's .formatter.exs and runs from the
+            # mix.exs root, so it formats with the project's own rules (and any
+            # plugins like the HEEx formatter, once added).
+            elixir = [ "mix" ];
           };
         };
       };
@@ -594,6 +601,15 @@
           # bundled binary is a fallback; that project's devShell puts its own
           # `metals` earlier on PATH (nixvim appends its bundle as a suffix).
           metals.enable = true;
+          # Elixir — for the beam-by-contrast educational project. Unlike
+          # ocamllsp below, ElixirLS does NOT need `package = null`: it compiles
+          # the project but isn't pinned to an exact compiler the way ocamllsp
+          # is to .cmi files, and nixpkgs' default Elixir (1.18.x / OTP 27) is
+          # the same version the project's devShell pins — so the bundled
+          # elixir-ls and the devShell agree. If a future Elixir project pins a
+          # different major OTP, revisit this (the ocamllsp note explains the
+          # null-package escape hatch).
+          elixirls.enable = true;
           # OCaml — for the type-driven-mini-ml educational project.
           # `package = null` is load-bearing: ocamllsp reads the project's
           # compiled `.cmi` files and MUST be built with the exact same OCaml
