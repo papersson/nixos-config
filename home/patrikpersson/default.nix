@@ -242,6 +242,12 @@
   # TUI system monitor — top/htop replacement.
   programs.btop.enable = true;
 
+  # PDF reader for textbooks/papers: keyboard-driven, per-file position
+  # memory, marks, highlights, and "portals" that follow figure/theorem
+  # references into a side view. Wayland-native (Qt).
+  programs.sioyek.enable = true;
+  xdg.mimeApps.defaultApplications."application/pdf" = "sioyek.desktop";
+
   # Fall back to other completers when carapace lacks a native one.
   home.sessionVariables = {
     CARAPACE_BRIDGES = "zsh,fish,bash,inshellisense";
