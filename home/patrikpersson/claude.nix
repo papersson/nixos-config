@@ -33,6 +33,10 @@
       alwaysThinkingEnabled = true;
       editorMode = "vim";
       effortLevel = "high";
+      # Default model for new sessions. `/model` can switch per-session,
+      # but its "save as default" writes to settings.json, which is a
+      # read-only nix-store symlink here — so the default lives in Nix.
+      model = "claude-fable-5";
       skipDangerousModePermissionPrompt = true;
 
       env = {
