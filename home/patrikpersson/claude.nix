@@ -62,7 +62,6 @@
         allow = [
           "Read(**)"
           "Grep(**)"
-          "Glob(**)"
           "WebSearch"
           "Bash(ls:*)"
           "Bash(cat:*)"
