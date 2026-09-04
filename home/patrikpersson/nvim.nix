@@ -278,6 +278,14 @@
       glow = {
         enable = true;
         settings = {
+          # glow.nvim spawns glow on plain pipes (no pty), so glow's
+          # colour detection sees "not a terminal" and strips every
+          # colour, leaving bold-only monochrome output. CLICOLOR_FORCE
+          # overrides that. Scoped to a wrapper rather than vim.env so no
+          # other subprocess (formatters, linters, git) inherits it.
+          glow_path = "${pkgs.writeShellScript "glow-forced-color" ''
+            CLICOLOR_FORCE=1 exec ${pkgs.glow}/bin/glow "$@"
+          ''}";
           border = "rounded";
           width_ratio = 0.85;
           height_ratio = 0.85;
