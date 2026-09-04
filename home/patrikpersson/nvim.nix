@@ -157,6 +157,9 @@
       { mode = "n"; key = "<leader>ml"; action = "<cmd>marks<cr>"; options.desc = "List marks"; }
       { mode = "n"; key = "<leader>md"; action = "<cmd>delmarks a-z<cr>"; options.desc = "Delete all marks"; }
 
+      # Markdown preview (glow.nvim renders the buffer in a floating window)
+      { mode = "n"; key = "<leader>mp"; action = "<cmd>Glow<cr>"; options.desc = "Markdown preview (glow)"; }
+
       # Tags (requires ctags)
       { mode = "n"; key = "<leader>tj"; action = "<C-]>"; options.desc = "Jump to tag"; }
       { mode = "n"; key = "<leader>tb"; action = "<C-t>"; options.desc = "Jump back from tag"; }
@@ -267,6 +270,19 @@
       };
 
       fugitive.enable = true;
+
+      # Rendered markdown (tables, headings, code blocks) in a floating
+      # window, separate from the editing buffer. Terminal-only, so it
+      # works over SSH on z840 too — unlike browser-based previewers.
+      # `glowPackage` pulls in the glow CLI; nothing else to install.
+      glow = {
+        enable = true;
+        settings = {
+          border = "rounded";
+          width_ratio = 0.85;
+          height_ratio = 0.85;
+        };
+      };
 
       mini = {
         enable = true;
