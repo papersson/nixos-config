@@ -53,9 +53,12 @@
   # `--all` env import already set in hyprland.nix. gtk.enable +
   # x11.enable also write the theme into the GTK + X11 config so
   # XWayland apps pick it up too.
+  # Adwaita is the plain GNOME arrow (white, black outline) — the
+  # "regular" cursor. Bibata-Modern-Classic was the stylised rounded
+  # black pointer and got swapped out for looking odd.
   home.pointerCursor = {
-    name = "Bibata-Modern-Classic";
-    package = pkgs.bibata-cursors;
+    name = "Adwaita";
+    package = pkgs.adwaita-icon-theme;
     size = 24;
     gtk.enable = true;
     x11.enable = true;
