@@ -213,6 +213,14 @@
         "float, class:^(blueman-manager)$"
         "float, class:^(nm-connection-editor)$"
         "float, title:^(File Operation Progress)$"
+        # GTK file pickers (Zen's Save As, any GTK open/save dialog) come
+        # from the portal process, not the app, so Hyprland doesn't see
+        # them as child dialogs and tiles them. Left unfloated they pile
+        # up as ever-smaller tiles until each new one looks like it never
+        # opened.
+        "float,        class:^(xdg-desktop-portal-gtk)$"
+        "center,       class:^(xdg-desktop-portal-gtk)$"
+        "size 60% 70%, class:^(xdg-desktop-portal-gtk)$"
         "float, title:^(Picture-in-Picture)$"
         "pin,   title:^(Picture-in-Picture)$"
         # Zen always opens on the browser workspace (ws 7, the Acer).
