@@ -1,20 +1,16 @@
-{ pkgs, ... }:
+{ ... }:
 
 # OpenAI Codex CLI, managed via home-manager's `programs.codex` module.
 #
-# The package comes from the `pkgs.unstable` overlay (flake.nix): stable
-# 25.11 ships a months-old build and Codex releases several times a week.
-# Bump with `nix flake update nixpkgs-unstable`.
+# The binary is `pkgs.codex`, overridden in flake.nix's overlay to the
+# official upstream release tarball (pkgs/codex.nix) — nixpkgs builds from
+# source and trails upstream by weeks. Bump with `codex-bump`.
 #
-# `settings` is written to ~/.codex/config.toml in the read-only nix store,
-# so changes made through the in-app UI won't persist — edit here and
-# rebuild, same as claude.nix. Login state (~/.codex/auth.json) stays
-# mutable and untouched.
+# `settings` is left empty on purpose: Codex rewrites ~/.codex/config.toml
+# itself at runtime (login, model choice, migrations), so it stays mutable
+# like ~/.claude.json. Setting `settings` here would turn it into a
+# read-only store symlink and clash with the app's own writes.
 
 {
-  programs.codex = {
-    enable = true;
-    package = pkgs.unstable.codex;
-    settings = { };
-  };
+  programs.codex.enable = true;
 }

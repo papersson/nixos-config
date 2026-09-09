@@ -130,6 +130,10 @@
                 inherit (final.stdenv.hostPlatform) system;
                 config.allowUnfree = true;
               };
+              # Latest Codex CLI from OpenAI's release binaries (pkgs/);
+              # nixpkgs' from-source build trails by weeks. Bump with
+              # `codex-bump`.
+              codex = final.callPackage ./pkgs/codex.nix { };
             })
           ];
         }
@@ -172,6 +176,10 @@
                 inherit (final.stdenv.hostPlatform) system;
                 config.allowUnfree = true;
               };
+              # Latest Codex CLI from OpenAI's release binaries (pkgs/);
+              # nixpkgs' from-source build trails by weeks. Bump with
+              # `codex-bump`.
+              codex = final.callPackage ./pkgs/codex.nix { };
             })
           ];
         }
