@@ -1,10 +1,16 @@
-# OpenAI Codex CLI from the official prebuilt release binary.
+# OpenAI Codex CLI from the official prebuilt release bundle.
 #
 # nixpkgs builds codex from source and lags upstream by weeks; Codex ships
 # several releases a week and new models only work on recent builds. This
-# fetches the static musl binary OpenAI attaches to each GitHub release —
-# the same approach nix-claude-code takes for Claude Code. No patchelf:
-# the binary is static-pie.
+# fetches the `codex-package` bundle OpenAI attaches to each GitHub
+# release — the same approach nix-claude-code takes for Claude Code.
+#
+# The bundle is installed as-is because codex resolves its helpers by
+# layout, not PATH: `codex-package.json` next to `bin/` points it at
+# sibling binaries (`bin/codex-code-mode-host`, needed for Code Mode),
+# `codex-path/` (rg) and `codex-resources/` (bwrap, zsh). Installing only
+# the bare `codex` binary made Code Mode "fail closed" for want of the
+# host executable. Everything is static musl, so no patchelf.
 #
 # Bump with the `codex-bump` shell function (edits version + hash below,
 # rebuilds, commits). Manually: change `version`, then run
@@ -14,9 +20,7 @@
   lib,
   stdenvNoCC,
   fetchurl,
-  makeWrapper,
-  ripgrep,
-  bubblewrap,
+  zstd,
 }:
 
 stdenvNoCC.mkDerivation (finalAttrs: {
@@ -24,25 +28,22 @@ stdenvNoCC.mkDerivation (finalAttrs: {
   version = "0.153.4";
 
   src = fetchurl {
-    url = "https://github.com/openai/codex/releases/download/rust-v${finalAttrs.version}/codex-x86_64-unknown-linux-musl.tar.gz";
-    hash = "sha256-9HlCTsoJJITcQNh64oxE9MxAI0pgBF1hMeSTgA2BSjA=";
+    url = "https://github.com/openai/codex/releases/download/rust-v${finalAttrs.version}/codex-package-x86_64-unknown-linux-musl.tar.zst";
+    hash = "sha256-K1wA31dY0BTHmRD9/+1D8ppsrnPzfpLV7CFlQ8pT554=";
   };
 
-  # The tarball holds a single file, no top-level directory.
+  # The tarball's entries sit at the top level (bin/, codex-path/, ...).
   sourceRoot = ".";
 
-  nativeBuildInputs = [ makeWrapper ];
+  nativeBuildInputs = [ zstd ];
 
   dontStrip = true;
   dontPatchELF = true;
 
   installPhase = ''
     runHook preInstall
-    install -Dm755 codex-x86_64-unknown-linux-musl $out/bin/codex
-    # Same runtime deps nixpkgs wraps in: rg for search, bwrap for the
-    # Linux sandbox.
-    wrapProgram $out/bin/codex \
-      --prefix PATH : ${lib.makeBinPath [ ripgrep bubblewrap ]}
+    mkdir -p $out
+    cp -r bin codex-path codex-resources codex-package.json $out/
     runHook postInstall
   '';
 

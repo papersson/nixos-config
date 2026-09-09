@@ -92,7 +92,7 @@
 
       # ── codex-bump: pull the newest Codex CLI ───────────────────────
       # Looks up the latest GitHub release, prefetches the x86_64 musl
-      # tarball, rewrites version + hash in pkgs/codex.nix, rebuilds, and
+      # bundle, rewrites version + hash in pkgs/codex.nix, rebuilds, and
       # commits only if the build succeeded.
       codex-bump() {
         local repo="$HOME/nixos-config" f="$HOME/nixos-config/pkgs/codex.nix" tag ver hash
@@ -100,7 +100,7 @@
         ver=''${tag#rust-v}
         if grep -q "version = \"$ver\"" "$f"; then echo "codex already at $ver"; return 0; fi
         hash=$(nix store prefetch-file --json \
-          "https://github.com/openai/codex/releases/download/$tag/codex-x86_64-unknown-linux-musl.tar.gz" \
+          "https://github.com/openai/codex/releases/download/$tag/codex-package-x86_64-unknown-linux-musl.tar.zst" \
           | jq -r .hash) || return 1
         sed -i -e "s|version = \".*\";|version = \"$ver\";|" \
                -e "s|hash = \"sha256-.*\";|hash = \"$hash\";|" "$f"
