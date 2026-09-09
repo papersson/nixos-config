@@ -3,7 +3,7 @@
 # Minimal home-manager entry point for headless/server hosts.
 # Imports only CLI tooling — no Hyprland, theming, desktop-shell, or browser.
 {
-  imports = [ ./nvim.nix ./claude.nix ];
+  imports = [ ./nvim.nix ./claude.nix ./codex.nix ];
 
   home.username = "patrikpersson";
   home.homeDirectory = "/home/patrikpersson";
