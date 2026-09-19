@@ -1,5 +1,27 @@
 { pkgs, lib, catp, ... }:
 
+let
+  # Switch every monitor to "row" N (1–3) of its workspace triplet in
+  # one keypress: ws 1/4/7 → row 1, 2/5/8 → row 2, 3/6/9 → row 3. Works
+  # per-monitor from whatever each one is currently showing, so it is
+  # correct with or without the dock (undocked, the single monitor just
+  # moves within its own triplet). Focus returns to the monitor that
+  # had it before the switch.
+  wsRow = pkgs.writeShellScript "hypr-ws-row" ''
+    set -eu
+    row=$1
+    jq=${pkgs.jq}/bin/jq
+    monitors=$(hyprctl monitors -j)
+    focused=$(printf '%s' "$monitors" | $jq -r '.[] | select(.focused) | .name')
+    batch=""
+    for entry in $(printf '%s' "$monitors" | $jq -r '.[] | "\(.name):\(.activeWorkspace.id)"'); do
+      name=''${entry%%:*}; ws=''${entry##*:}
+      target=$(( (ws - 1) / 3 * 3 + row ))
+      batch="$batch dispatch focusmonitor $name; dispatch workspace $target;"
+    done
+    hyprctl --batch "$batch dispatch focusmonitor $focused"
+  '';
+in
 {
   wayland.windowManager.hyprland = {
     # The system module installs Hyprland + portal. package/portalPackage
@@ -316,6 +338,11 @@
         "$mod SHIFT, 7, movetoworkspace, 7"
         "$mod SHIFT, 8, movetoworkspace, 8"
         "$mod SHIFT, 9, movetoworkspace, 9"
+        # Workspace rows: $mod+Alt+N shows row N on all monitors at once
+        # (1 → 1/4/7, 2 → 2/5/8, 3 → 3/6/9). See wsRow above.
+        "$mod ALT, 1, exec, ${wsRow} 1"
+        "$mod ALT, 2, exec, ${wsRow} 2"
+        "$mod ALT, 3, exec, ${wsRow} 3"
         # Scroll workspaces with mouse wheel
         "$mod, mouse_down, workspace, e+1"
         "$mod, mouse_up,   workspace, e-1"
