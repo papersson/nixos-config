@@ -28,6 +28,7 @@ NC='\033[0m'
 # ─────────────────────────────────────────────────────────────────────────────
 model_name=$(echo "$input" | jq -r '.model.display_name // "Claude"')
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir // "~"')
+effort_level=$(echo "$input" | jq -r '.effort.level // empty')
 
 # Context window
 context_size=$(echo "$input" | jq -r '.context_window.context_window_size // 200000')
@@ -179,7 +180,9 @@ usage_item() {  # label pct [reset-epoch]
 
 # Line 1: Model in /path on branch
 display_dir="${current_dir/#$HOME/~}"
-line1="${FG_CLAUDE}${model_name}${NC} ${FG_OVERLAY}in${NC} ${FG_TEXT}${display_dir}${NC}"
+line1="${FG_CLAUDE}${model_name}${NC}"
+[ -n "$effort_level" ] && line1="${line1} ${FG_SUBTEXT}${effort_level}${NC}"
+line1="${line1} ${FG_OVERLAY}in${NC} ${FG_TEXT}${display_dir}${NC}"
 if [ -n "$branch" ]; then
     line1="${line1} ${FG_OVERLAY}on${NC} ${FG_SUBTEXT}${ICON_GIT} ${branch}${NC}"
 fi
