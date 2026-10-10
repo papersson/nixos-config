@@ -461,6 +461,12 @@ in
         "Session\\GlobalMaxRatio" = 2.0;
         "Session\\GlobalMaxSeedingMinutes" = 20160;
         "Session\\MaxRatioAction" = 1;
+        # Download one torrent at a time so each title finishes sooner instead
+        # of N sharing the line. A torrent under 500 KiB/s for 60 s counts as
+        # "slow" and stops holding the slot (IgnoreSlowTorrentsForQueueing is
+        # on via nixarr), so a weak swarm can't block the queue.
+        "Session\\MaxActiveDownloads" = 1;
+        "Session\\SlowTorrentsDownloadRate" = 500;
       };
     };
 
