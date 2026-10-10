@@ -1,5 +1,72 @@
 { config, lib, pkgs, ... }:
 
+let
+  # `arr-apikey <app>` — print one *arr app's API key. The config.xml files
+  # live in 0700 per-service dirs, so this runs via a sudo rule pinned to this
+  # exact store path + argument (see security.sudo.extraRules). It's the
+  # narrowest grant that lets Claude drive Radarr/Sonarr/Prowlarr over their
+  # HTTP APIs (add movies/shows, inspect + fix the download queue) — it prints
+  # the key and nothing else from the file.
+  arrApiKey = pkgs.writeShellApplication {
+    name = "arr-apikey";
+    runtimeInputs = [ pkgs.gnused ];
+    text = ''
+      case "''${1:-}" in
+        radarr|sonarr|prowlarr) ;;
+        *) echo "usage: arr-apikey radarr|sonarr|prowlarr" >&2; exit 2 ;;
+      esac
+      sed -n 's:.*<ApiKey>\([^<]*\)</ApiKey>.*:\1:p' "/tank/nixarr/$1/config.xml"
+    '';
+  };
+  arrApps = [ "radarr" "sonarr" "prowlarr" ];
+
+  # `media-queue` — what's downloading and is it moving? Radarr + Sonarr
+  # queues (incl. their warnings/errors) and every qBittorrent torrent with
+  # state, progress, speed, seeds and time since last activity. qBittorrent's
+  # API is reached on the VPN bridge (192.168.15.1:8085), which nixarr
+  # whitelists for unauthenticated access from the host. `--json` emits the
+  # raw combined data for scripting; exit 1 if anything looks stuck.
+  mediaQueue = pkgs.writeShellApplication {
+    name = "media-queue";
+    runtimeInputs = with pkgs; [ curl jq coreutils ];
+    text = ''
+      qbit=http://192.168.15.1:8085/api/v2
+      key() { sudo -n ${arrApiKey}/bin/arr-apikey "$1"; }
+      arr() { # app port
+        curl -sf --max-time 15 -H "X-Api-Key: $(key "$1")" \
+          "http://localhost:$2/api/v3/queue?pageSize=200&includeUnknownMovieItems=true&includeUnknownSeriesItems=true&includeMovie=true&includeSeries=true&includeEpisode=true" \
+          || echo '{"records":[],"error":"unreachable"}'
+      }
+      radarr=$(arr radarr 7878)
+      sonarr=$(arr sonarr 8989)
+      torrents=$(curl -sf --max-time 15 "$qbit/torrents/info" || echo '[]')
+      all=$(jq -n --argjson r "$radarr" --argjson s "$sonarr" --argjson t "$torrents" \
+        '{radarr: $r.records, sonarr: $s.records, torrents: $t, now: now}')
+
+      if [ "''${1:-}" = --json ]; then echo "$all"; exit 0; fi
+
+      echo "$all" | jq -r '
+        def gb: . / 1073741824 | (. * 100 | round / 100 | tostring) + " GB";
+        def mins: (. / 60 | floor);
+        def arrline: "  [\(.status)/\(.trackedDownloadState // "-")] \(.title)  left=\(.sizeleft | gb) eta=\(.timeleft // "?")"
+          + (if ((.statusMessages // []) | length) > 0 then "\n      ! " + ([.statusMessages[].messages[]] | join("; ")) else "" end)
+          + (if .errorMessage then "\n      ! " + .errorMessage else "" end);
+        "Radarr queue (\(.radarr | length)):", (.radarr[] | arrline),
+        "", "Sonarr queue (\(.sonarr | length)):", (.sonarr[] | arrline),
+        "", "qBittorrent (\(.torrents | length)):",
+        (.now as $now | .torrents[] |
+          "  [\(.state)] \(.progress * 1000 | floor / 10)%  \(.dlspeed / 1024 | floor) KiB/s  seeds=\(.num_seeds)/\(.num_complete)  idle=\(($now - .last_activity) | mins)m  \(.category)  \(.name)")
+      '
+
+      # stuck = qBittorrent says stalled/errored/missing, or an *arr item
+      # carries a warning/error state
+      stuck=$(echo "$all" | jq '
+        ([.torrents[] | select(.state | test("stalledDL|error|missingFiles|metaDL"))] | length)
+        + ([(.radarr + .sonarr)[] | select(.trackedDownloadStatus != "ok" or .status == "warning" or .status == "failed")] | length)')
+      if [ "$stuck" -gt 0 ]; then echo; echo "! $stuck item(s) look stuck"; exit 1; fi
+    '';
+  };
+in
 {
   imports = [
     ./hardware-configuration.nix
@@ -74,6 +141,8 @@
   #   - service control on the MEDIA STACK only (restart/start/stop/reload):
   #     wg, qbittorrent, qui, sonarr, radarr, prowlarr, bazarr, seerr,
   #     jellyfin, flaresolverr, tailscaled, nginx.
+  #   - reading the Radarr/Sonarr/Prowlarr API keys (arr-apikey), so Claude
+  #     can add media and manage the download queue over the HTTP APIs.
   #   - the rebuild itself: nh os switch / nixos-rebuild. Reversible via
   #     generation rollback, which is what makes it reasonable to grant.
   #
@@ -118,6 +187,8 @@
         "${sw}/ip netns exec wg ${pkgs.wireguard-tools}/bin/wg"
         "${sw}/ip netns exec wg cat /etc/resolv.conf"
       ]
+      # --- *arr API keys (one exact rule per app; see arrApiKey above) ---
+      ++ map (app: "${arrApiKey}/bin/arr-apikey ${app}") arrApps
       # --- media-stack service control ---
       ++ serviceRules
       # --- the rebuild ---
@@ -251,7 +322,7 @@
         exit "$fail"
       '';
     };
-  in [ mediaHealth ] ++ (with pkgs; [
+  in [ mediaHealth mediaQueue arrApiKey ] ++ (with pkgs; [
     git
     gh
     vim
