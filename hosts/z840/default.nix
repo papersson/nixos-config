@@ -66,6 +66,47 @@ let
       if [ "$stuck" -gt 0 ]; then echo; echo "! $stuck item(s) look stuck"; exit 1; fi
     '';
   };
+
+  # `media-watch [interval-seconds]` — block until something needs attention,
+  # then print why + the queue and exit. Meant to run in the background so a
+  # caller (Claude) is woken only on events, not on a timer:
+  #   exit 0 "QUEUE EMPTY"     — nothing left in Radarr/Sonarr
+  #   exit 0 "LEFT QUEUE: …"   — an item imported (or was removed)
+  #   exit 1 "NO PROGRESS: …"  — an *active* torrent downloaded 0 bytes over
+  #                              one interval (default 15 min). Queued torrents
+  #                              are ignored — waiting their turn isn't stuck,
+  #                              and Radarr's "stalled" warning right after a
+  #                              grab is usually transient, so bytes are judged.
+  mediaWatch = pkgs.writeShellApplication {
+    name = "media-watch";
+    runtimeInputs = [ mediaQueue pkgs.jq pkgs.coreutils ];
+    text = ''
+      interval=''${1:-900}
+      prev=""; prevq=""
+      while true; do
+        j=$(media-queue --json)
+        cur=$(echo "$j" | jq -c '[.torrents[] | select(.progress < 1 and (.state | test("^(downloading|stalledDL|metaDL|forcedDL)$"))) | {h: .hash, n: .name, d: .downloaded}]')
+        q=$(echo "$j" | jq -c '[(.radarr + .sonarr)[].title] | sort')
+        if [ "$(echo "$q" | jq length)" -eq 0 ]; then
+          echo "QUEUE EMPTY $(date +%H:%M)"; media-queue || true; exit 0
+        fi
+        if [ -n "$prevq" ]; then
+          gone=$(jq -nc --argjson a "$prevq" --argjson b "$q" '$a - $b')
+          if [ "$gone" != "[]" ]; then
+            echo "LEFT QUEUE $(date +%H:%M): $gone"; media-queue || true; exit 0
+          fi
+        fi
+        if [ -n "$prev" ]; then
+          stuck=$(jq -nc --argjson a "$prev" --argjson b "$cur" '[$b[] as $x | $a[] | select(.h == $x.h and .d == $x.d) | .n]')
+          if [ "$stuck" != "[]" ]; then
+            echo "NO PROGRESS $(date +%H:%M): $stuck"; media-queue || true; exit 1
+          fi
+        fi
+        prev=$cur; prevq=$q
+        sleep "$interval"
+      done
+    '';
+  };
 in
 {
   imports = [
@@ -322,7 +363,7 @@ in
         exit "$fail"
       '';
     };
-  in [ mediaHealth mediaQueue arrApiKey ] ++ (with pkgs; [
+  in [ mediaHealth mediaQueue mediaWatch arrApiKey ] ++ (with pkgs; [
     git
     gh
     vim

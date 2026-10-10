@@ -17,6 +17,11 @@
     + builtins.readFile ./claude/CLAUDE.common.md
   );
 
+  # movie-server — z840-only skill: add movies/shows and babysit downloads via
+  # the *arr APIs (uses media-queue / media-watch / arr-apikey from
+  # hosts/z840). Lives here rather than papershop because it's host-specific.
+  home.file.".claude/skills/movie-server".source = ./claude/skills/movie-server;
+
   programs.git = {
     enable = true;
     settings = {
