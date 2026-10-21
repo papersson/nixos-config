@@ -13,6 +13,11 @@
 #   plugins          ← lua/plugins/*.lua  + LazyVim's auto-enabled defaults
 
 {
+  # The tags keymaps (<leader>t*, Telescope tags, `gd` outside LSP buffers)
+  # read a tags file; universal-ctags generates it (`ctags -R`). On home.packages
+  # rather than nixvim's extraPackages so it's on the shell's PATH too.
+  home.packages = [ pkgs.universal-ctags ];
+
   programs.nixvim = {
     enable = true;
     defaultEditor = true;
