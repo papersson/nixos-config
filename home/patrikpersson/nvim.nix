@@ -13,11 +13,6 @@
 #   plugins          ← lua/plugins/*.lua  + LazyVim's auto-enabled defaults
 
 {
-  # The tags keymaps (<leader>t*, Telescope tags, `gd` outside LSP buffers)
-  # read a tags file; universal-ctags generates it (`ctags -R`). On home.packages
-  # rather than nixvim's extraPackages so it's on the shell's PATH too.
-  home.packages = [ pkgs.universal-ctags ];
-
   programs.nixvim = {
     enable = true;
     defaultEditor = true;
@@ -164,11 +159,6 @@
 
       # Markdown preview (glow.nvim renders the buffer in a floating window)
       { mode = "n"; key = "<leader>mp"; action = "<cmd>Glow<cr>"; options.desc = "Markdown preview (glow)"; }
-
-      # Tags (requires ctags)
-      { mode = "n"; key = "<leader>tj"; action = "<C-]>"; options.desc = "Jump to tag"; }
-      { mode = "n"; key = "<leader>tb"; action = "<C-t>"; options.desc = "Jump back from tag"; }
-      { mode = "n"; key = "<leader>ts"; action = "g]"; options.desc = "List matching tags"; }
 
       # Macro helpers
       { mode = "n"; key = "Q"; action = "@q"; options.desc = "Play macro q"; }
@@ -413,9 +403,6 @@
           "<leader>fr" = { action = "registers"; options.desc = "Registers"; };
           "<leader>gc" = { action = "git_commits"; options.desc = "Git commits"; };
           "<leader>gs" = { action = "git_status"; options.desc = "Git status"; };
-          "gd" = { action = "tags"; options.desc = "Go to definition (tags)"; };
-          "<leader>ft" = { action = "tags"; options.desc = "Tags"; };
-          "<leader>fT" = { action = "current_buffer_tags"; options.desc = "Buffer tags"; };
           "<leader>fc" = { action = "commands"; options.desc = "Commands"; };
           "<leader>fk" = { action = "keymaps"; options.desc = "Keymaps"; };
           "<leader>f:" = { action = "command_history"; options.desc = "Command history"; };
@@ -675,11 +662,5 @@
         };
       };
     };
-
-    # The above `gd` and `gr` telescope maps and the LSP `gd` map both want
-    # the same key. Telescope's runs as a buffer-global map; the LSP one is
-    # set on LspAttach as a buffer-local override, so in LSP-attached
-    # buffers the LSP definition wins and elsewhere telescope tags fires.
-    # Documented so future-me doesn't think it's a typo.
   };
 }
