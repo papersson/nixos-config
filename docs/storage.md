@@ -86,6 +86,13 @@ Datasets (`zfs list -r tank`):
   aggressive snapshots, same template as jellyfin/config)
 - `tank/jellyfin`, `tank/jellyfin/config`, `tank/jellyfin/cache` —
   Jellyfin state (recordsize=128K; aggressive snapshots on config)
+- `tank/archive` — main copy of cold project media (video, frames,
+  renders, datasets) archived from the laptops by the `media` tool.
+  Layout mirrors the laptop's home: `~/Code/x/data` lives at
+  `/tank/archive/Code/x/data`. Owned by `patrikpersson` (tmpfiles rule),
+  written over SSH (recordsize=128K; hourly/daily/weekly/monthly
+  snapshots, because the laptop copy is gone once an archive verifies).
+  No quota yet; add one when it nears media's size.
 
 > **Gotcha — new dataset + its consumer in one rebuild.** If you `zfs
 > create` a dataset and enable a service that writes to it in the *same*

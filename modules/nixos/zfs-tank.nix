@@ -66,7 +66,15 @@
     "/tank/jellyfin"        = { device = "tank/jellyfin";        fsType = "zfs"; };
     "/tank/jellyfin/config" = { device = "tank/jellyfin/config"; fsType = "zfs"; };
     "/tank/jellyfin/cache"  = { device = "tank/jellyfin/cache";  fsType = "zfs"; };
+    "/tank/archive"         = { device = "tank/archive";         fsType = "zfs"; };
   };
+
+  # `tank/archive` is the main copy of cold project media pushed from the
+  # laptops by the `media` tool; the laptops keep only a working cache. The
+  # tool writes over SSH as the user, so the mount root belongs to the user.
+  systemd.tmpfiles.rules = [
+    "d /tank/archive 0750 patrikpersson users -"
+  ];
 
   # Monthly scrubs catch silent bit-rot before it becomes data loss.
   # Default schedule (second Sunday of the month) is fine; empty `pools`
@@ -81,6 +89,9 @@
   #   corruption from above. Weekly cadence also sweeps up in-progress torrents,
   #   which is cheap and self-pruning at 4 weeks.
   # - tank/jellyfin/cache: not snapshotted (regenerable).
+  # - tank/archive: the laptop copy is deleted once an archive is verified, so
+  #   snapshots are the only undo for a bad delete or overwrite here. Hourly
+  #   for a fresh archive, months of tail; cheap because archives rarely change.
   services.sanoid = {
     enable = true;
     templates = {
@@ -96,11 +107,20 @@
         autoprune = true;
         autosnap = true;
       };
+      archive = {
+        hourly = 24;
+        daily = 30;
+        weekly = 8;
+        monthly = 6;
+        autoprune = true;
+        autosnap = true;
+      };
     };
     datasets = {
       "tank/jellyfin/config".useTemplate = [ "app-state" ];
       "tank/nixarr".useTemplate = [ "app-state" ];
       "tank/media".useTemplate = [ "media-weekly" ];
+      "tank/archive".useTemplate = [ "archive" ];
     };
   };
 }
