@@ -84,6 +84,15 @@
       url = "github:nix-media-server/nixarr";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # Rex terminal multiplexer: packages the vendor's release binary and
+    # ships a home-manager module that runs the personal server as a systemd
+    # user service. Preview channel because stable has no release yet.
+    # `nix flake update rex` moves to the newest preview.
+    rex = {
+      url = "https://pkgs.superlogical.com/rex/nix/preview.tar.gz";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = { self, nixpkgs, nixpkgs-unstable, home-manager, nixos-hardware, sops-nix, lanzaboote, nixvim, zen-browser, nix-claude-code, nixarr, ... }@inputs: {
@@ -161,6 +170,7 @@
           home-manager.sharedModules = [
             sops-nix.homeManagerModules.sops
             nixvim.homeModules.nixvim
+            inputs.rex.homeManagerModules.default
           ];
           home-manager.users.patrikpersson = import ./home/patrikpersson/server.nix;
         }

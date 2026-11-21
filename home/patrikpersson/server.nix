@@ -9,6 +9,18 @@
   home.homeDirectory = "/home/patrikpersson";
   home.stateVersion = "25.11";
 
+  # Rex personal server, reached from the Mac as `rex -S z840`
+  # (ssh://server). Runs as a systemd user service; lingering in
+  # hosts/z840 keeps it, and its sessions, alive while logged out.
+  services.rex.enable = true;
+
+  # Lets the Rex module add its ssh guard to ~/.ssh/config, so ssh from a
+  # Rex pane sends TERM=xterm-256color to hosts that lack xterm-rex.
+  programs.ssh = {
+    enable = true;
+    enableDefaultConfig = false;
+  };
+
   # Concatenate the z840 Environment section with the shared common rules,
   # then hand the resulting file to programs.claude-code.memory.source.
   programs.claude-code.memory.source = pkgs.writeText "CLAUDE.md" (
