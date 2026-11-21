@@ -190,6 +190,9 @@
               # nixpkgs' from-source build trails by weeks. Bump with
               # `codex-bump`.
               codex = final.callPackage ./pkgs/codex.nix { };
+              # Google Antigravity CLI (`agy`) from Google's release binary (pkgs/);
+              # not in nixpkgs.
+              antigravity-cli = final.callPackage ./pkgs/antigravity-cli.nix { };
             })
           ];
         }

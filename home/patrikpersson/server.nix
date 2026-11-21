@@ -216,5 +216,6 @@
     ssh-to-age
     unstable.agent-browser
     chromium
+    antigravity-cli
   ];
 }
