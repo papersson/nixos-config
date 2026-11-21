@@ -47,10 +47,11 @@ in
       alwaysThinkingEnabled = true;
       editorMode = "vim";
       effortLevel = "high";
-      # Default model for new sessions. `/model` can switch per-session,
-      # but its "save as default" writes to settings.json, which is a
-      # read-only nix-store symlink here — so the default lives in Nix.
-      model = "claude-fable-5-1";
+      # No `model` pin: new sessions use Anthropic's recommended default for
+      # the account, so new releases arrive without a flake edit. `/model`
+      # switches per-session only — "save as default" can't write the
+      # read-only settings.json. To pin, set `model` here to an alias
+      # ("fable", "opus") rather than a dated ID that goes stale.
       skipDangerousModePermissionPrompt = true;
 
       env = {
