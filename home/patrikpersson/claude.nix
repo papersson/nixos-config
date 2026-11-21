@@ -1,4 +1,4 @@
-{ pkgs, inputs, ... }:
+{ pkgs, lib, inputs, ... }:
 
 # Claude Code configuration, managed declaratively via home-manager's
 # `programs.claude-code` module.
@@ -14,6 +14,20 @@
 # the base lifts out for cross-machine reuse and only the host section
 # stays here.
 
+let
+  # Skill-only plugins from the papershop marketplace (wired in home.file
+  # below). Only plugins that are pure skills and never write into their
+  # own dir belong here; the store copy is read-only. studio (writes
+  # .cache/ and kit/.venv beside itself, needs its hook) and elicit come
+  # from the claude.ai account-synced papershop marketplace instead.
+  papershopSkills = [
+    "worklog"
+    "prose"
+    "performance-engineering"
+    "walk-me-through"
+    "polish-ui"
+  ];
+in
 {
   programs.claude-code = {
     enable = true;
@@ -143,32 +157,40 @@
     };
   };
 
-  # statusline script — must stay a real file (referenced by
-  # settings.statusLine.command above); the module has no option for it.
-  home.file.".claude/statusline.sh" = {
-    source = ./claude/statusline.sh;
-    executable = true;
-  };
-
   # worklog — the `worklog` CLI (DuckDB-indexed query over Claude Code
-  # transcripts) plus its driving skill, from the papershop marketplace.
-  # Native nix consumption: a binary on PATH and the skill file, no
-  # plugin/marketplace/hook. The script reads WORKLOG_DB /
+  # transcripts), from the papershop marketplace; its skill is wired via
+  # papershopSkills. The script reads WORKLOG_DB /
   # WORKLOG_DUCKDB_EXTENSION_DIR, both set by the flake's wrapper to a
   # writable XDG cache.
   home.packages = [ inputs.papershop.packages.${pkgs.system}.worklog ];
-  home.file.".claude/skills/worklog/SKILL.md".source = "${inputs.papershop}/worklog/skills/worklog/SKILL.md";
 
-  # orchestrate — the meta-workflow skill (gate a task, scope it, fire a
-  # dynamic workflow) plus its invocation templates. Symlink the whole skill
-  # directory so templates/ resolves next to SKILL.md.
-  home.file.".claude/skills/orchestrate".source = "${inputs.papershop}/orchestrate/skills/orchestrate";
+  home.file = lib.mkMerge [
+    {
+      # statusline script — must stay a real file (referenced by
+      # settings.statusLine.command above); the module has no option for it.
+      ".claude/statusline.sh" = {
+        source = ./claude/statusline.sh;
+        executable = true;
+      };
 
-  # prose — style-only rewrite + teaching review, grounded in reference.md.
-  # Symlink the whole skill dir so reference.md resolves next to SKILL.md.
-  home.file.".claude/skills/prose".source = "${inputs.papershop}/prose/skills/prose";
+      # polish-ui's skill dispatches to its plugin agents. Installed bare
+      # they register as `polisher`/`reviewer`, not `polish-ui:polisher`.
+      ".claude/agents/polisher.md".source = "${inputs.papershop}/polish-ui/agents/polisher.md";
+      ".claude/agents/reviewer.md".source = "${inputs.papershop}/polish-ui/agents/reviewer.md";
+    }
 
-  # performance-engineering — perf analysis/optimization skill plus its
-  # modules/. Symlink the whole skill dir so modules/ resolves next to SKILL.md.
-  home.file.".claude/skills/performance-engineering".source = "${inputs.papershop}/performance-engineering/skills/performance-engineering";
+    # Each papershopSkills name symlinks its whole skill dir
+    # (<name>/skills/<name>) so references/, modules/, scripts/ resolve
+    # next to SKILL.md. Versions follow the `papershop` lock — bump with
+    # `papershop-bump`. A name upstream dropped fails evaluation here
+    # rather than leaving a dangling symlink.
+    (lib.listToAttrs (map (name: {
+      name = ".claude/skills/${name}";
+      value.source =
+        let p = "${inputs.papershop}/${name}/skills/${name}"; in
+        assert lib.assertMsg (builtins.pathExists p)
+          "papershop skill '${name}' no longer exists upstream; drop it from papershopSkills";
+        p;
+    }) papershopSkills))
+  ];
 }

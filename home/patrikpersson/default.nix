@@ -176,6 +176,16 @@
         git -C /etc/nixos commit -m "claude: bump nix-claude-code to latest" flake.lock
       }
 
+      # ── papershop-bump: pull the newest papershop skills ────────────
+      # Same shape as claude-bump. Wired skills (papershopSkills in
+      # claude.nix) follow this one lock entry; a skill upstream dropped
+      # fails the build, so nothing is committed.
+      papershop-bump() {
+        ( cd /etc/nixos && nix flake update papershop ) || return 1
+        nh os switch || return 1
+        git -C /etc/nixos commit -m "claude: bump papershop to latest" flake.lock
+      }
+
       # ── codex-bump: pull the newest Codex CLI ───────────────────────
       # Looks up the latest GitHub release, prefetches the x86_64 musl
       # bundle, rewrites version + hash in pkgs/codex.nix, rebuilds, and
