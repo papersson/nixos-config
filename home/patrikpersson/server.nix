@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, lib, ... }:
 
 # Minimal home-manager entry point for headless/server hosts.
 # Imports only CLI tooling — no Hyprland, theming, desktop-shell, or browser.
@@ -28,6 +28,12 @@
     + "\n"
     + builtins.readFile ./claude/CLAUDE.common.md
   );
+
+  # z840 sessions start in bypass-permissions mode (no tool prompts).
+  # Overrides the shared "acceptEdits" default in claude.nix; t14 keeps that.
+  # Root-level damage is still bounded by the scoped sudo rules in
+  # hosts/z840/default.nix.
+  programs.claude-code.settings.permissions.defaultMode = lib.mkForce "bypassPermissions";
 
   # movie-server — z840-only skill: add movies/shows and babysit downloads via
   # the *arr APIs (uses media-queue / media-watch / arr-apikey from
