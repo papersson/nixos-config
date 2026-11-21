@@ -217,5 +217,10 @@
     unstable.agent-browser
     chromium
     antigravity-cli
+    # Media tooling for Studio film work run by agents outside Studio's own env
+    # (tools/*.py, make-clips.sh): python with numpy + Pillow, ffmpeg, sox.
+    (python3.withPackages (ps: [ ps.numpy ps.pillow ]))
+    ffmpeg
+    sox
   ];
 }
