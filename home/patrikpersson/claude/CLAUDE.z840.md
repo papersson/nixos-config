@@ -49,3 +49,15 @@ Personal homelab built around this single strong server, replacing common SaaS d
 - OpenSSH: key auth only, password auth and root login disabled.
 - ZFS support enabled in the kernel; no pools created yet.
 - No services running beyond SSH.
+
+## Other models: Codex and Gemini
+
+Two other agent CLIs are installed (Nix-managed) and logged in. Use them for a second opinion from a different model family, an independent review, or delegating a long autonomous job.
+
+- **Codex (OpenAI)**: `codex exec`. No default model is configured; pass `-m gpt-6-astra` (list with `codex debug models`; run `codex-bump` for newer ones).
+  - One-shot: `echo "<prompt>" | codex exec --skip-git-repo-check --ephemeral -s read-only -c 'notify=[]' -m gpt-6-astra -o out.md -`
+  - Agentic: `-s workspace-write -C <repo> [--add-dir <dir>]`. Don't use `--dangerously-bypass-approvals-and-sandbox`; Claude's classifier blocks it. `--json` emits events, and the first line has `thread_id` for `codex exec resume <id>`, which takes the sandbox as `-c sandbox_mode=...`, not `-s`.
+  - Images: `-i a.png -i b.png`, with the prompt on stdin (`-i` swallows positionals).
+- **Gemini (Google Antigravity)**: `agy -p "<prompt>" --model gemini-4-neon-high --print-timeout 0`. List models with `agy models`. `--output-format json` gives structured output, `--mode auto` lets it edit files, and `--disable-slash-commands` suits scripted calls. It can read image, audio and video files with its own tools.
+- Long runs (more than a few minutes): launch in a Rex window (`rex -S z840 new …`) and poll, rather than blocking a Bash call.
+- Both bill against subscriptions with usage windows; cache results when calling in a loop. Login is interactive only (`codex login --device-auth`; `agy` with no arguments). If auth fails, hand off to the user.
