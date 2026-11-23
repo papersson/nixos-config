@@ -65,6 +65,15 @@
   # hosts/z840/default.nix.
   programs.claude-code.settings.permissions.defaultMode = lib.mkForce "bypassPermissions";
 
+  # Long autonomous agent runs (e.g. the click-save film polish passes) are
+  # launched by Claude as agy inside a rex session with approvals off. Sessions
+  # that run in auto mode instead of bypass need these explicit rules, or the
+  # auto-mode classifier refuses the launch. Merged with the shared allow list.
+  programs.claude-code.settings.permissions.allow = [
+    "Bash(rex new:*)"
+    "Bash(agy --model:*)"
+  ];
+
   # movie-server — z840-only skill: add movies/shows and babysit downloads via
   # the *arr APIs (uses media-queue / media-watch / arr-apikey from
   # hosts/z840). Lives here rather than papershop because it's host-specific.
