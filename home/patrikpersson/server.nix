@@ -14,6 +14,35 @@
   # hosts/z840 keeps it, and its sessions, alive while logged out.
   services.rex.enable = true;
 
+  # Claude Code Remote Control server in ~/studio: registers z840 as an
+  # environment on the claude.ai account, so project threads and
+  # claude.ai/code sessions run here without the Mac. Lingering keeps it up
+  # while logged out; Restart=always brings it back after the ~10 min
+  # network-loss exit. claude comes from the system profile, so a
+  # claude-bump does not restart it (running sessions survive); it picks up
+  # the new version on the next restart or reboot.
+  # One-time: the folder's trust prompt was answered interactively.
+  systemd.user.services.claude-remote-control = {
+    Unit = {
+      Description = "Claude Code Remote Control (~/studio)";
+      After = [ "network-online.target" ];
+      StartLimitIntervalSec = 0;
+    };
+    Service = {
+      WorkingDirectory = "%h/studio";
+      ExecStart = "/run/current-system/sw/bin/claude remote-control --name z840-studio";
+      Environment = [
+        "PATH=/run/wrappers/bin:/etc/profiles/per-user/patrikpersson/bin:/run/current-system/sw/bin"
+      ];
+      Restart = "always";
+      RestartSec = "15s";
+      TimeoutStopSec = "30s";
+      # The TUI redraws its status line every second; keep it out of the journal.
+      StandardOutput = "null";
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
+
   # Lets the Rex module add its ssh guard to ~/.ssh/config, so ssh from a
   # Rex pane sends TERM=xterm-256color to hosts that lack xterm-rex.
   programs.ssh = {
