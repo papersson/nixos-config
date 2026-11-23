@@ -4,7 +4,7 @@
 
 - HP Z840 workstation, NixOS 25.11, kernel `pkgs.linuxPackages_latest`. Headless — no desktop session, accessed via SSH.
 - User: `patrikpersson`. Shell: `zsh`. Prompt: starship. Jumps: zoxide.
-- System config: flake at `~/nixos-config` (clone of `papersson/nixos-config`). User-writable for edits; rebuilds need sudo.
+- System config: flake at `~/nixos-config` (clone of `papersson/nixos-config`). User-writable for edits. Claude can rebuild z840 itself through a scoped passwordless sudo rule: `sudo -n /run/current-system/sw/bin/nixos-rebuild switch --flake ~/nixos-config#z840`. Not `nh os switch`, which prompts for a password. What the rule covers and what stays a hand-off: the repo's CLAUDE.md.
 - Networking: static IP `192.168.1.10/24` on `eno1`, hostname `z840`, hostId `8f3a1c2b`. Reachable from the t14 as `ssh server`.
 
 ## Homelab

@@ -10,8 +10,6 @@
 
 **Every project ships its own devShell.** Each project has a `flake.nix` exposing `devShells.default` plus an `.envrc` containing `use flake`, so direnv auto-loads it on `cd`. Stage new `flake.nix`/`.envrc` files as soon as they're created — flakes only evaluate git-tracked files, so an unstaged flake is invisible to Nix and the devShell silently won't load. Project tooling — compilers, language servers, formatters — comes from that devShell and nothing else: never install it imperatively, and don't assume it's present system-wide (projects are worked on from more than one machine). Plain `pkgs.mkShell` is the standard; reach for `devenv` only when a project needs orchestrated runtime services.
 
-**Rebuilds need sudo — Claude can't run them.** Hand off via `! nh os switch` (works from any directory, includes closure diffs). The long-form `sudo nixos-rebuild switch ...` lives in the project's CLAUDE.md if you need it.
-
 **Secrets are sops-encrypted, not plaintext in the flake.** Never put credentials directly into Nix values, and never `builtins.readFile` a sops path — both land secrets in the world-readable nix store. When working in the nixos-config repo, see its CLAUDE.md for the YAML filename, edit commands, and rotation steps.
 
 ## Working style
