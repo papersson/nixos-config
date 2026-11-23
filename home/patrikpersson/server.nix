@@ -14,23 +14,24 @@
   # hosts/z840 keeps it, and its sessions, alive while logged out.
   services.rex.enable = true;
 
-  # Claude Code Remote Control server in ~/studio: registers z840 as an
+  # Claude Code Remote Control server, launched from ~/Code (sessions can
+  # work in any folder; ~ itself cannot hold a saved trust): registers z840 as an
   # environment on the claude.ai account, so project threads and
   # claude.ai/code sessions run here without the Mac. Lingering keeps it up
   # while logged out; Restart=always brings it back after the ~10 min
   # network-loss exit. claude comes from the system profile, so a
   # claude-bump does not restart it (running sessions survive); it picks up
   # the new version on the next restart or reboot.
-  # One-time: the folder's trust prompt was answered interactively.
+  # One-time: the trust prompt for ~/Code was answered interactively.
   systemd.user.services.claude-remote-control = {
     Unit = {
-      Description = "Claude Code Remote Control (~/studio)";
+      Description = "Claude Code Remote Control (~/Code)";
       After = [ "network-online.target" ];
       StartLimitIntervalSec = 0;
     };
     Service = {
-      WorkingDirectory = "%h/studio";
-      ExecStart = "/run/current-system/sw/bin/claude remote-control --name z840-studio";
+      WorkingDirectory = "%h/Code";
+      ExecStart = "/run/current-system/sw/bin/claude remote-control --name z840";
       Environment = [
         "PATH=/run/wrappers/bin:/etc/profiles/per-user/patrikpersson/bin:/run/current-system/sw/bin"
       ];
