@@ -372,6 +372,31 @@ in
   # people are ever added to the tailnet (Phase 4).
   networking.firewall.trustedInterfaces = [ "tailscale0" ];
 
+  # Atuin sync server: shell history and agent threads between the Mac and
+  # z840 (clients use sync_address = http://100.77.126.122:8888). Reached over
+  # the trusted tailnet only; the LAN firewall keeps 8888 closed. Records are
+  # end-to-end encrypted by the clients, so this stores ciphertext; every
+  # client also keeps a full copy, so the DB is a relay, not the only copy.
+  # SQLite instead of the module's default local PostgreSQL. The release
+  # `atuin` binary has no server built in, so the service runs the separate
+  # atuin-server release binary (pkgs/atuin-server.nix) directly.
+  services.atuin = {
+    enable = true;
+    package = pkgs.atuin-server;
+    host = "0.0.0.0";
+    port = 8888;
+    # One account (mine) exists; nobody else should be able to register.
+    openRegistration = false;
+    database = {
+      createLocally = false;
+      uri = "sqlite:///var/lib/atuin/atuin.db";
+    };
+  };
+  systemd.services.atuin.serviceConfig = {
+    StateDirectory = "atuin";
+    ExecStart = lib.mkForce "${lib.getExe pkgs.atuin-server} start";
+  };
+
   # Jellyfin media server — Phase 1 of docs/media-server.md.
   #
   # Naming caveat: the dataset is `tank/jellyfin/config` (per the spec) but

@@ -51,7 +51,17 @@ bump_release() {
 bump_release codex pkgs/codex.nix openai/codex rust-v codex-package-x86_64-unknown-linux-musl.tar.zst
 bump_release atuin pkgs/atuin.nix atuinsh/atuin v atuin-x86_64-unknown-linux-musl.tar.gz
 
-files=(flake.lock pkgs/codex.nix pkgs/atuin.nix)
+# The sync server takes the client's version (pkgs/atuin-server.nix), so
+# only its hash needs to follow.
+if ! git diff --quiet -- pkgs/atuin.nix; then
+  ver=$(sed -n 's/^  version = "\(.*\)";/\1/p' pkgs/atuin.nix)
+  hash=$(nix store prefetch-file --json \
+    "https://github.com/atuinsh/atuin/releases/download/v$ver/atuin-server-x86_64-unknown-linux-musl.tar.gz" \
+    | jq -r .hash)
+  sed -i "s|hash = \"sha256-.*\";|hash = \"$hash\";|" pkgs/atuin-server.nix
+fi
+
+files=(flake.lock pkgs/codex.nix pkgs/atuin.nix pkgs/atuin-server.nix)
 
 if git diff --quiet -- "${files[@]}"; then
   echo "nightly-bump: everything is current"

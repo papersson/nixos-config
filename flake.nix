@@ -197,6 +197,7 @@
               # and the MCP server need 18.25+, nixpkgs has 18.10. Bump with
               # `atuin-bump`. z840-only; t14 keeps nixpkgs' atuin.
               atuin = final.callPackage ./pkgs/atuin.nix { };
+              atuin-server = final.callPackage ./pkgs/atuin-server.nix { };
             })
           ];
         }

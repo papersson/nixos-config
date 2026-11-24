@@ -225,8 +225,13 @@
           | jq -r .hash) || return 1
         sed -i -e "s|version = \".*\";|version = \"$ver\";|" \
                -e "s|hash = \"sha256-.*\";|hash = \"$hash\";|" "$f"
+        # The sync server follows the client's version; only its hash moves.
+        hash=$(nix store prefetch-file --json \
+          "https://github.com/atuinsh/atuin/releases/download/$tag/atuin-server-x86_64-unknown-linux-musl.tar.gz" \
+          | jq -r .hash) || return 1
+        sed -i "s|hash = \"sha256-.*\";|hash = \"$hash\";|" "$repo/pkgs/atuin-server.nix"
         nh os switch || return 1
-        git -C "$repo" commit -m "atuin: bump to $ver" pkgs/atuin.nix
+        git -C "$repo" commit -m "atuin: bump to $ver" pkgs/atuin.nix pkgs/atuin-server.nix
       }
     '';
   };
@@ -263,6 +268,9 @@
       # this, `atuin resume` and `atuin mcp` there report "Daemon is not
       # running". 1000 is the auto-assigned uid of patrikpersson.
       daemon.socket_path = "/run/user/1000/atuin.sock";
+      # The sync server on this same box (services.atuin in hosts/z840), shared
+      # with the Mac. The login is a one-time `atuin login` with the Mac's key.
+      sync_address = "http://127.0.0.1:8888";
       filter_mode = "directory";
       filter_mode_shell_up_key_binding = "global";
       keymap_mode = "vim-insert";
