@@ -19,9 +19,9 @@ HTTP. The user should never need to open an app. Background and design live in
   Default interval 900 s.
 - `media-health` — whole-stack check incl. a real VPN test. Run it first if
   anything behaves oddly (0 seeds everywhere = tunnel/DNS, not the torrent).
-- API keys: the sudo rule matches the **store path**, so resolve the symlink:
+- API keys (needs sudo; the config files are 0700):
   ```bash
-  k=$(sudo -n "$(readlink -f /run/current-system/sw/bin/arr-apikey)" radarr)   # or sonarr / prowlarr
+  k=$(sudo -n arr-apikey radarr)   # or sonarr / prowlarr
   api(){ curl -s -H "X-Api-Key: $k" -H 'Content-Type: application/json' "$@"; }
   R=localhost:7878/api/v3      # Sonarr: localhost:8989/api/v3
   ```

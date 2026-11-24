@@ -2,11 +2,9 @@
 
 let
   # `arr-apikey <app>` — print one *arr app's API key. The config.xml files
-  # live in 0700 per-service dirs, so this runs via a sudo rule pinned to this
-  # exact store path + argument (see security.sudo.extraRules). It's the
-  # narrowest grant that lets Claude drive Radarr/Sonarr/Prowlarr over their
-  # HTTP APIs (add movies/shows, inspect + fix the download queue) — it prints
-  # the key and nothing else from the file.
+  # live in 0700 per-service dirs, so run it with sudo. Lets Claude drive
+  # Radarr/Sonarr/Prowlarr over their HTTP APIs (add movies/shows, inspect +
+  # fix the download queue).
   arrApiKey = pkgs.writeShellApplication {
     name = "arr-apikey";
     runtimeInputs = [ pkgs.gnused ];
@@ -22,9 +20,7 @@ let
 
   # `jellyfin-reset-pin` — print the PIN(s) from pending Jellyfin
   # forgot-password requests. Jellyfin writes them to passwordreset*.json in
-  # its 0700 data dir; this takes no arguments and prints only the PIN and
-  # expiry, so the sudo rule can be exact (a sudoers `cat …*.json` wildcard
-  # would also match extra file arguments). Flow: POST /Users/ForgotPassword
+  # its 0700 data dir, so run it with sudo. Flow: POST /Users/ForgotPassword
   # {"EnteredUsername": …} from localhost, run this, POST the PIN to
   # /Users/ForgotPassword/Pin.
   jellyfinResetPin = pkgs.writeShellApplication {
@@ -192,82 +188,13 @@ in
 
   programs.zsh.enable = true;
 
-  # Scoped passwordless sudo for the operator account (which Claude Code runs
-  # as). The point of this box is that Claude runs it, so grant the operations
-  # that make it useful without a human paste-back — while keeping the two
-  # things that could ruin the day behind a password: destroying data and
-  # losing the ability to log in.
-  #
-  # Granted (NOPASSWD):
-  #   - read-only diagnostics: journalctl, systemctl status/show/is-active,
-  #     zpool status, zfs list/get, and looking inside the VPN namespace
-  #     (ip netns exec wg …) for curl/ip/getent/wg.
-  #   - service control on the MEDIA STACK only (restart/start/stop/reload):
-  #     wg, qbittorrent, qui, sonarr, radarr, prowlarr, bazarr, seerr,
-  #     jellyfin, flaresolverr, tailscaled, nginx.
-  #   - reading the Radarr/Sonarr/Prowlarr API keys (arr-apikey), so Claude
-  #     can add media and manage the download queue over the HTTP APIs.
-  #   - reading a pending Jellyfin forgot-password PIN (jellyfin-reset-pin).
-  #   - the rebuild itself: nh os switch / nixos-rebuild. Reversible via
-  #     generation rollback, which is what makes it reasonable to grant.
-  #
-  # Deliberately NOT granted: rm/dd/mkfs as root, zfs destroy / zpool
-  # create|destroy|labelclear, reboot/poweroff, anything touching sops keys.
-  # Those stay a "please run this" from Claude. Paths use the stable
-  # /run/current-system/sw/bin so rules survive rebuilds.
-  security.sudo.extraRules = let
-    sw = "/run/current-system/sw/bin";
-    mediaUnits = [
-      "wg" "qbittorrent" "qui" "sonarr" "radarr" "prowlarr" "bazarr" "seerr"
-      "jellyfin" "flaresolverr" "tailscaled" "nginx"
-    ];
-    nopasswd = command: { inherit command; options = [ "NOPASSWD" ]; };
-    # one rule per (verb, unit) pair — sudoers has no brace-expansion
-    serviceRules = lib.concatMap (verb:
-      map (u: "${sw}/systemctl ${verb} ${u}.service") mediaUnits
-      ++ map (u: "${sw}/systemctl ${verb} ${u}") mediaUnits
-    ) [ "restart" "start" "stop" "reload" ];
-  in [{
+  # Full passwordless sudo for the operator account (which Claude Code runs
+  # as). The machine was bought to be run by AI agents, so the owner chose
+  # blanket root over a scoped allow-list (2026-11-24). Safety nets are the
+  # generation rollback and ZFS, not sudoers.
+  security.sudo.extraRules = [{
     users = [ "patrikpersson" ];
-    commands = map nopasswd (
-      # --- read-only diagnostics ---
-      [
-        "${sw}/journalctl *"
-        "${sw}/systemctl status *"
-        "${sw}/systemctl show *"
-        "${sw}/systemctl is-active *"
-        "${sw}/systemctl list-units *"
-        "${sw}/zpool status *"
-        "${sw}/zpool status"
-        "${sw}/zfs list *"
-        "${sw}/zfs list"
-        "${sw}/zfs get *"
-        # look inside the VPN namespace (read-only tools only)
-        "${sw}/ip netns exec wg curl *"
-        "${sw}/ip netns exec wg ip *"
-        "${sw}/ip netns exec wg getent *"
-        # `wg` isn't on PATH inside the namespace, so grant it by store path
-        # (read-only `show` subcommand only).
-        "${sw}/ip netns exec wg ${pkgs.wireguard-tools}/bin/wg show*"
-        "${sw}/ip netns exec wg ${pkgs.wireguard-tools}/bin/wg"
-        "${sw}/ip netns exec wg cat /etc/resolv.conf"
-      ]
-      # --- *arr API keys (one exact rule per app; see arrApiKey above) ---
-      ++ map (app: "${arrApiKey}/bin/arr-apikey ${app}") arrApps
-      # --- Jellyfin forgot-password PIN (no args; see jellyfinResetPin) ---
-      ++ [ "${jellyfinResetPin}/bin/jellyfin-reset-pin" ]
-      # --- media-stack service control ---
-      ++ serviceRules
-      # --- the rebuild ---
-      ++ [
-        "${sw}/nh os switch*"
-        "${sw}/nh os boot*"
-        "${sw}/nh os test*"
-        "${sw}/nixos-rebuild switch*"
-        "${sw}/nixos-rebuild test*"
-        "${sw}/nixos-rebuild boot*"
-      ]
-    );
+    commands = [{ command = "ALL"; options = [ "NOPASSWD" ]; }];
   }];
 
   programs.nh = {
@@ -301,7 +228,7 @@ in
   # and a real Mullvad exit, because a dead tunnel looks identical to a live
   # one from the outside (services "active", endpoint pingable) — that exact
   # blind spot hid a retired relay for ~8 weeks. Exit code 0 = all green.
-  # Uses the scoped sudo rules above for the namespace + service checks.
+  # Uses sudo for the namespace + service checks.
   environment.systemPackages = let
     mediaHealth = pkgs.writeShellApplication {
       name = "media-health";
