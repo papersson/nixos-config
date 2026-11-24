@@ -20,6 +20,26 @@ let
   };
   arrApps = [ "radarr" "sonarr" "prowlarr" ];
 
+  # `jellyfin-reset-pin` — print the PIN(s) from pending Jellyfin
+  # forgot-password requests. Jellyfin writes them to passwordreset*.json in
+  # its 0700 data dir; this takes no arguments and prints only the PIN and
+  # expiry, so the sudo rule can be exact (a sudoers `cat …*.json` wildcard
+  # would also match extra file arguments). Flow: POST /Users/ForgotPassword
+  # {"EnteredUsername": …} from localhost, run this, POST the PIN to
+  # /Users/ForgotPassword/Pin.
+  jellyfinResetPin = pkgs.writeShellApplication {
+    name = "jellyfin-reset-pin";
+    runtimeInputs = with pkgs; [ jq findutils ];
+    text = ''
+      found=0
+      while IFS= read -r -d "" f; do
+        found=1
+        jq -r '"\(.Pin)  expires \(.ExpirationDate)"' "$f"
+      done < <(find /tank/jellyfin/config -maxdepth 1 -name 'passwordreset*.json' -print0)
+      [ "$found" = 1 ] || { echo "no pending Jellyfin password reset" >&2; exit 1; }
+    '';
+  };
+
   # `media-queue` — what's downloading and is it moving? Radarr + Sonarr
   # queues (incl. their warnings/errors) and every qBittorrent torrent with
   # state, progress, speed, seeds and time since last activity. qBittorrent's
@@ -187,6 +207,7 @@ in
   #     jellyfin, flaresolverr, tailscaled, nginx.
   #   - reading the Radarr/Sonarr/Prowlarr API keys (arr-apikey), so Claude
   #     can add media and manage the download queue over the HTTP APIs.
+  #   - reading a pending Jellyfin forgot-password PIN (jellyfin-reset-pin).
   #   - the rebuild itself: nh os switch / nixos-rebuild. Reversible via
   #     generation rollback, which is what makes it reasonable to grant.
   #
@@ -233,6 +254,8 @@ in
       ]
       # --- *arr API keys (one exact rule per app; see arrApiKey above) ---
       ++ map (app: "${arrApiKey}/bin/arr-apikey ${app}") arrApps
+      # --- Jellyfin forgot-password PIN (no args; see jellyfinResetPin) ---
+      ++ [ "${jellyfinResetPin}/bin/jellyfin-reset-pin" ]
       # --- media-stack service control ---
       ++ serviceRules
       # --- the rebuild ---
@@ -366,7 +389,7 @@ in
         exit "$fail"
       '';
     };
-  in [ mediaHealth mediaQueue mediaWatch arrApiKey ] ++ (with pkgs; [
+  in [ mediaHealth mediaQueue mediaWatch arrApiKey jellyfinResetPin ] ++ (with pkgs; [
     git
     gh
     vim
