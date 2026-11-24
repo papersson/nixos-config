@@ -25,11 +25,11 @@
 
 stdenvNoCC.mkDerivation (finalAttrs: {
   pname = "codex";
-  version = "0.153.4";
+  version = "0.172.0";
 
   src = fetchurl {
     url = "https://github.com/openai/codex/releases/download/rust-v${finalAttrs.version}/codex-package-x86_64-unknown-linux-musl.tar.zst";
-    hash = "sha256-K1wA31dY0BTHmRD9/+1D8ppsrnPzfpLV7CFlQ8pT554=";
+    hash = "sha256-QOFauXgwtxpkKktzKMpMMBvwteD6r+aKqm4alLBP8V8=";
   };
 
   # The tarball's entries sit at the top level (bin/, codex-path/, ...).
