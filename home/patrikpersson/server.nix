@@ -44,6 +44,39 @@
     Install.WantedBy = [ "default.target" ];
   };
 
+  # Nightly bump of Claude Code, papershop skills, Codex and Atuin: one
+  # rebuild, one local commit, reverted on failure. See nightly-bump.sh for
+  # what it leaves out (Rex) and why. Run now: `systemctl --user start
+  # nightly-bump`; log: `journalctl --user -u nightly-bump`.
+  systemd.user.services.nightly-bump = {
+    Unit = {
+      Description = "Bump Claude Code, papershop, Codex and Atuin, then rebuild";
+      After = [ "network-online.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = lib.getExe (pkgs.writeShellApplication {
+        name = "nightly-bump";
+        runtimeInputs = with pkgs; [ git jq curl gnused gnugrep coreutils ];
+        text = builtins.readFile ./nightly-bump.sh;
+      });
+      # nix, sudo and nixos-rebuild come from the system, as in the
+      # interactive *-bump functions.
+      Environment = [
+        "PATH=/run/wrappers/bin:/run/current-system/sw/bin"
+      ];
+    };
+  };
+  systemd.user.timers.nightly-bump = {
+    Unit.Description = "Nightly agent-tool bump";
+    Timer = {
+      OnCalendar = "*-*-* 04:30";
+      RandomizedDelaySec = "20m";
+      Persistent = true;
+    };
+    Install.WantedBy = [ "timers.target" ];
+  };
+
   # Lets the Rex module add its ssh guard to ~/.ssh/config, so ssh from a
   # Rex pane sends TERM=xterm-256color to hosts that lack xterm-rex.
   programs.ssh = {
