@@ -8,7 +8,7 @@ Flake configuring two hosts for a single user (`patrikpersson`): the `t14` Think
 - `flake.lock` — pinned input revisions; commit alongside `flake.nix`
 - `hosts/t14/` — laptop host config + auto-generated `hardware-configuration.nix`
 - `hosts/z840/` — server host config + auto-generated `hardware-configuration.nix`
-- `pkgs/` — local package derivations applied via the overlay in `flake.nix` (currently `codex.nix`: the Codex CLI from OpenAI's official release binary, overriding `pkgs.codex`, bumped with the `codex-bump` shell function; and `antigravity-cli.nix`: Google's Antigravity CLI `agy`, z840-only).
+- `pkgs/` — local package derivations applied via the overlay in `flake.nix` (currently `codex.nix`: the Codex CLI from OpenAI's official release binary, overriding `pkgs.codex`, bumped with the `codex-bump` shell function; `antigravity-cli.nix`: Google's Antigravity CLI `agy`, z840-only; and `atuin.nix`: Atuin's official static release binary, overriding `pkgs.atuin` on z840 only, bumped with `atuin-bump`).
 - `modules/nixos/` — reusable system modules (T14 hardware tunables, Hyprland desktop + greetd, declarative Wi-Fi via sops). Currently t14-only; z840 imports its bits directly from `hosts/z840/default.nix`.
 - `home/patrikpersson/` — home-manager user config and bundled assets. Two entry points:
   - `default.nix` — t14 (desktop: imports Hyprland, theming, desktop-shell, zen-browser, ghostty, sops)

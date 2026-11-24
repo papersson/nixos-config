@@ -179,6 +179,22 @@
         nh os switch || return 1
         git -C "$repo" commit -m "codex: bump to $ver" pkgs/codex.nix
       }
+
+      # ── atuin-bump: pull the newest Atuin ───────────────────────────
+      # Same shape as codex-bump, for pkgs/atuin.nix's static musl build.
+      atuin-bump() {
+        local repo="$HOME/nixos-config" f="$HOME/nixos-config/pkgs/atuin.nix" tag ver hash
+        tag=$(curl -fsSL https://api.github.com/repos/atuinsh/atuin/releases/latest | jq -r .tag_name) || return 1
+        ver=''${tag#v}
+        if grep -q "version = \"$ver\"" "$f"; then echo "atuin already at $ver"; return 0; fi
+        hash=$(nix store prefetch-file --json \
+          "https://github.com/atuinsh/atuin/releases/download/$tag/atuin-x86_64-unknown-linux-musl.tar.gz" \
+          | jq -r .hash) || return 1
+        sed -i -e "s|version = \".*\";|version = \"$ver\";|" \
+               -e "s|hash = \"sha256-.*\";|hash = \"$hash\";|" "$f"
+        nh os switch || return 1
+        git -C "$repo" commit -m "atuin: bump to $ver" pkgs/atuin.nix
+      }
     '';
   };
 
@@ -193,12 +209,27 @@
     enableZshIntegration = true;
   };
 
+  # Shell history plus every agent's threads (Claude Code, Codex), searchable
+  # with `atuin resume` and over MCP. The daemon captures threads by reading
+  # the agents' transcript files; home-manager runs it as a socket-activated
+  # user service that is also wanted by default.target, so with lingering it
+  # is up from boot. The MCP entry lives in the mutable ~/.claude.json
+  # (`claude mcp add -s user atuin -- atuin mcp`): programs.claude-code can
+  # only add MCP servers by wrapping its package, which is null here.
   programs.atuin = {
     enable = true;
     enableZshIntegration = true;
     flags = [ "--disable-up-arrow" ];
+    daemon.enable = true;
     settings = {
-      search_mode = "fuzzy";
+      # The daemon's in-memory index; `atuin setup --daemon` sets the same.
+      search_mode = "daemon-fuzzy";
+      threads.enabled = true;
+      # The systemd socket is %t/atuin.sock, and atuin finds it through
+      # $XDG_RUNTIME_DIR, which Tailscale SSH and Rex panes leave unset; without
+      # this, `atuin resume` and `atuin mcp` there report "Daemon is not
+      # running". 1000 is the auto-assigned uid of patrikpersson.
+      daemon.socket_path = "/run/user/1000/atuin.sock";
       filter_mode = "directory";
       filter_mode_shell_up_key_binding = "global";
       keymap_mode = "vim-insert";

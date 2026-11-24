@@ -193,6 +193,10 @@
               # Google Antigravity CLI (`agy`) from Google's release binary (pkgs/);
               # not in nixpkgs.
               antigravity-cli = final.callPackage ./pkgs/antigravity-cli.nix { };
+              # Atuin from its official release binary (pkgs/): thread capture
+              # and the MCP server need 18.25+, nixpkgs has 18.10. Bump with
+              # `atuin-bump`. z840-only; t14 keeps nixpkgs' atuin.
+              atuin = final.callPackage ./pkgs/atuin.nix { };
             })
           ];
         }
