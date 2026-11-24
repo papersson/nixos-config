@@ -85,6 +85,11 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # nixbot — CI for papersson/apps on z840 (hosts/z840/ci.nix), the
+    # successor of buildbot-nix. Not following our nixpkgs: it tracks
+    # nixos-unstable-small and its nix-eval-jobs needs a newer Nix than 25.11.
+    nixbot.url = "github:Mic92/nixbot";
+
     # Rex terminal multiplexer: packages the vendor's release binary and
     # ships a home-manager module that runs the personal server as a systemd
     # user service. Preview channel because stable has no release yet.

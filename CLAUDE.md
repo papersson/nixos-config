@@ -7,7 +7,7 @@ Flake configuring two hosts for a single user (`patrikpersson`): the `t14` Think
 - `flake.nix` — inputs (nixpkgs 25.11, nixpkgs-unstable, home-manager release-25.11, nixos-hardware, sops-nix, lanzaboote, nixvim, matugen, zen-browser) and the `nixosConfigurations.{t14,z840}` outputs
 - `flake.lock` — pinned input revisions; commit alongside `flake.nix`
 - `hosts/t14/` — laptop host config + auto-generated `hardware-configuration.nix`
-- `hosts/z840/` — server host config + auto-generated `hardware-configuration.nix`
+- `hosts/z840/` — server host config + auto-generated `hardware-configuration.nix`; `cache.nix` (harmonia binary cache, tailnet only) and `ci.nix` (nixbot CI for papersson/apps, GitHub App ids in `nixbot-app.json`) — see `docs/ci.md`
 - `pkgs/` — local package derivations applied via the overlay in `flake.nix` (currently `codex.nix`: the Codex CLI from OpenAI's official release binary, overriding `pkgs.codex`, bumped with the `codex-bump` shell function; `antigravity-cli.nix`: Google's Antigravity CLI `agy`, z840-only; and `atuin.nix`: Atuin's official static release binary, overriding `pkgs.atuin` on z840 only, bumped with `atuin-bump`).
 - `modules/nixos/` — reusable system modules (T14 hardware tunables, Hyprland desktop + greetd, declarative Wi-Fi via sops). Currently t14-only; z840 imports its bits directly from `hosts/z840/default.nix`.
 - `home/patrikpersson/` — home-manager user config and bundled assets. Two entry points:
@@ -15,7 +15,8 @@ Flake configuring two hosts for a single user (`patrikpersson`): the `t14` Think
   - `server.nix` — z840 (headless: nvim + CLI tooling + claude-code only)
 - `home/patrikpersson/claude/` — Claude Code global `~/.claude/CLAUDE.md` source. Split into `CLAUDE.common.md` (universal rules, shared across hosts) and per-host `CLAUDE.<host>.md` (Environment section). Each host config concatenates the two via `pkgs.writeText`. `skills/` holds host-specific local skills (currently `movie-server`, z840-only, wired in `server.nix`); general-purpose skills come from papershop.
 - `.sops.yaml` — age recipient list (user + host) and creation rules
-- `secrets/` — encrypted YAML (`t14.yaml` holds Wi-Fi PSK + user SSH key). z840 has no sops secrets yet.
+- `secrets/` — sops-encrypted files (`t14.yaml`: Wi-Fi PSK + user SSH key; `z840-wireguard.conf`: Mullvad; `z840-nixbot.yaml`: nixbot's GitHub App credentials)
+- `scripts/` — one-off helpers run by hand (`nixbot-app-from-manifest.sh` turns a GitHub App manifest code into `nixbot-app.json` + the sops file without printing a secret)
 - `docs/` — longform notes; not loaded by the flake. `docs/drafts/` holds open architectural questions; `docs/runbooks/` holds host-agnostic procedures for rare, high-stakes operations (bare-metal reinstall, recovery) plus a `concepts.md` primer.
 - `reference.md` — full hardware/OS setup guide and 10-item gotcha catalogue for the T14
 
@@ -52,6 +53,7 @@ Flake configuring two hosts for a single user (`patrikpersson`): the `t14` Think
 - `reference.md` — full setup rationale, BIOS settings, install procedure, 10 known T14-on-NixOS gotchas
 - `docs/drafts/` — open architectural questions (dotfiles-vs-Nix integration)
 - `docs/runbooks/` — rare high-stakes procedures (bare-metal reinstall) + `concepts.md` primer on disko/facter/nixos-anywhere
+- `docs/ci.md` — z840 as build farm: nixbot, harmonia, the GitHub App, how to add a repo
 - `docs/media-server.md` — z840 media-server spec (per-phase status, decisions, runbook pointers)
 - `docs/storage.md` — z840 pool layout, dataset conventions, gotchas for adding non-media workloads to `tank`
 - Auto-memory: `~/.claude/projects/<cwd-encoded>/memory/` — rolling project state across sessions, keyed by the cwd Claude Code was invoked from

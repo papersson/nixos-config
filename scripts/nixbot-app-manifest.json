@@ -1,0 +1,22 @@
+{
+  "name": "papersson-nixbot",
+  "url": "https://github.com/papersson/nixos-config/blob/main/docs/ci.md",
+  "description": "nixbot CI on z840",
+  "public": false,
+  "hook_attributes": {
+    "url": "https://z840.tail7bf5b7.ts.net:8443/webhooks/github",
+    "active": true
+  },
+  "redirect_url": "https://github.com/papersson/nixos-config",
+  "callback_urls": ["https://z840.tail7bf5b7.ts.net/auth/github/callback"],
+  "request_oauth_on_install": false,
+  "default_permissions": {
+    "contents": "read",
+    "metadata": "read",
+    "checks": "write",
+    "statuses": "write",
+    "pull_requests": "read",
+    "issues": "write"
+  },
+  "default_events": ["push", "pull_request", "check_run", "check_suite", "issue_comment"]
+}

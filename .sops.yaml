@@ -21,3 +21,10 @@ creation_rules:
       - age:
           - *user_persson
           - *host_z840
+  # nixbot's GitHub App credentials (private key, OAuth client secret,
+  # webhook secret), written by scripts/nixbot-app-from-manifest.sh.
+  - path_regex: secrets/z840-nixbot\.yaml$
+    key_groups:
+      - age:
+          - *user_persson
+          - *host_z840
