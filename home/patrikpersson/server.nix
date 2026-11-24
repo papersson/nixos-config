@@ -302,6 +302,13 @@
   programs.tmux.enable = true;
 
   home.sessionVariables = {
+    # rex.service owns the Rex socket. Without this, a client that connects
+    # while the unit is down (the Mac app reconnecting over ssh, mid-rebuild)
+    # autostarts its own server outside systemd, which takes the socket and
+    # leaves rex.service failing "endpoint is already in use" every 5 s.
+    # On 2026-11-21 that went on for three days. .zshenv loads this, so
+    # it also reaches the non-interactive shell Tailscale SSH runs.
+    REX_AUTOSTART = "0";
     CARAPACE_BRIDGES = "zsh,fish,bash,inshellisense";
     # agent-browser's `install` downloads a Chrome-for-Testing binary that
     # won't run on NixOS (no FHS dynamic linker); point it at nix chromium.
