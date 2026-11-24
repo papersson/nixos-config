@@ -28,7 +28,9 @@ in
     };
     path = [ pkgs.nix ];
     script = ''
+      # Readable directory, private key: UMask 0077 would make the directory 0700 too.
       mkdir -p ${keyDir}
+      chmod 0755 ${keyDir}
       if [ ! -s ${keyDir}/secret-key ]; then
         nix key generate-secret --key-name z840-1 > ${keyDir}/secret-key.tmp
         mv ${keyDir}/secret-key.tmp ${keyDir}/secret-key
