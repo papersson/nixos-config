@@ -61,3 +61,15 @@ Two other agent CLIs are installed (Nix-managed) and logged in. Use them for a s
 - **Gemini (Google Antigravity)**: `agy -p "<prompt>" --model gemini-4-neon-high --print-timeout 0`. List models with `agy models`. `--output-format json` gives structured output, `--mode auto` lets it edit files, and `--disable-slash-commands` suits scripted calls. It can read image, audio and video files with its own tools.
 - Long runs (more than a few minutes): launch in a Rex window (`rex -S z840 new …`) and poll, rather than blocking a Bash call.
 - Both bill against subscriptions with usage windows; cache results when calling in a loop. Login is interactive only (`codex login --device-auth`; `agy` with no arguments). If auth fails, hand off to the user.
+
+## Agent history: atuin
+
+atuin records shell history and every Claude Code and Codex thread on this machine (agy threads aren't captured). The `atuin-daemon` user service captures new threads as they happen. Threads are not synced with the Mac.
+
+- To find earlier work by any agent, use the atuin MCP tools (`atuin_threads_search`, then `atuin_threads_read`) or `atuin threads search <words> --style json` instead of grepping `~/.claude/projects`. `atuin threads show <id>` prints a whole thread.
+- To hand a thread to another agent: `atuin resume <id> --in codex --print` writes it out as a Codex session and prints the command that resumes it. `--fork` copies it within the same agent.
+- The `worklog` skill turns this history into reports, runbooks and CLAUDE.md rules.
+
+## Nightly tool bumps
+
+The `nightly-bump` user timer (04:30) updates Claude Code, the papershop skills, Codex and atuin, rebuilds once and commits to `~/nixos-config` (never pushes). Rex is bumped by hand, because its update ends every session. If a tool misbehaves overnight, `journalctl --user -u nightly-bump` and `git -C ~/nixos-config log` show what changed. Tailscale SSH sessions and Rex panes don't set `XDG_RUNTIME_DIR`, so prefix `systemctl --user` and `journalctl --user` with `XDG_RUNTIME_DIR=/run/user/1000`.
