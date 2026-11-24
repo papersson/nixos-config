@@ -40,6 +40,8 @@ in
     # Behind tailscale serve, which terminates TLS; nixbot listens on 8010.
     nginx.enable = false;
     useHTTPS = true;
+    # GitHub delivers to the Funnel port; the UI stays on 443, tailnet only.
+    webhookBaseUrl = "https://${domain}:8443/";
     admins = [ "github:papersson" ];
 
     # nixbot's own nixpkgs (unstable) builds it, not our 25.11.
