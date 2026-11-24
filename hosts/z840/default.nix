@@ -128,6 +128,7 @@ in
   imports = [
     ./hardware-configuration.nix
     ../../modules/nixos/zfs-tank.nix
+    ./cache.nix
   ];
 
   # Standard systemd-boot — no Secure Boot / Lanzaboote on this workstation.
