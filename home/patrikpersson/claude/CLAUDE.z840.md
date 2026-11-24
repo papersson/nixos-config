@@ -64,10 +64,10 @@ Two other agent CLIs are installed (Nix-managed) and logged in. Use them for a s
 
 ## Agent history: atuin
 
-atuin records shell history and every Claude Code and Codex thread on this machine (agy threads aren't captured). The `atuin-daemon` user service captures new threads as they happen. Threads are not synced with the Mac.
+atuin holds shell history and every Claude Code and Codex thread on this machine, back to the first transcripts (agy threads aren't captured). The `atuin-daemon` user service captures new threads as they happen. Threads are not synced with the Mac.
 
-- To find earlier work by any agent, use the atuin MCP tools (`atuin_threads_search`, then `atuin_threads_read`) or `atuin threads search <words> --style json` instead of grepping `~/.claude/projects`. `atuin threads show <id>` prints a whole thread.
-- To hand a thread to another agent: `atuin resume <id> --in codex --print` writes it out as a Codex session and prints the command that resumes it. `--fork` copies it within the same agent.
+- To find earlier work by any agent, use the atuin MCP tools (`atuin_threads_search`, then `atuin_threads_read`) or `atuin threads search <words> [--harness codex] --style json` instead of grepping `~/.claude/projects`. Each result's `session.atuin_id` is the thread id; its last 8 characters are enough. `atuin threads show <id>` prints a whole thread.
+- To hand a thread to another agent: `atuin resume <id> --in <agent> --print`, with `<agent>` `claude-code` or `codex`. It writes the thread out as a new session of that agent and prints the command that resumes it. `--fork` instead makes a new session of the thread's own agent with the same history.
 - The `worklog` skill turns this history into reports, runbooks and CLAUDE.md rules.
 
 ## Nightly tool bumps
