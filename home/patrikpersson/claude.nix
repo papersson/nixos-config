@@ -23,7 +23,6 @@ let
   papershopSkills = [
     "worklog"
     "prose"
-    "performance-engineering"
     "walk-me-through"
     "polish-ui"
   ];
