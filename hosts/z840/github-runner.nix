@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, inputs, pkgs, ... }:
 
 # Self-hosted GitHub Actions runner for papersson/apps, labelled `z840`, so
 # workflows can pick this box with `runs-on: [self-hosted, z840]`.
@@ -22,6 +22,12 @@
     extraLabels = [ "z840" ];
     replace = true;
     tokenFile = "/var/lib/github-runner-registration/apps.token";
+
+    # Newer runners ship only node24; the module default also asks for node20.
+    nodeRuntimes = [ "node24" ];
+    # From its own nixpkgs pin, which tracks unstable: see the
+    # nixpkgs-runner input in flake.nix for why and how to bump it.
+    package = inputs.nixpkgs-runner.legacyPackages.${pkgs.stdenv.hostPlatform.system}.github-runner;
 
     extraPackages = with pkgs; [
       git
