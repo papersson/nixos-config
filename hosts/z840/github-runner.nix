@@ -58,6 +58,13 @@ in
       # the Checks ratchet, python3 for .github/scripts/pr-media-embed.sh.
       gh
       python3
+      # The repo's scripts call these, which the hosted image also has:
+      util-linux # setsid (UI review job), flock
+      procps # pgrep, kill
+      hostname # hostname
+      netcat-openbsd # nc
+      diffutils # diff
+      file # file
     ];
 
     # actions/setup-node and pnpm/action-setup download generic Linux
