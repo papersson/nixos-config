@@ -70,6 +70,14 @@ in
       chromium
     ];
 
+    # Let Chromium call capset. The module's syscall filter denies it and
+    # kills the caller with SIGSYS, so Chromium's zygote died at fork and
+    # agent-browser hung waiting on CDP in the UI review job. The service has
+    # an empty capability bounding set and NoNewPrivileges, so capset can
+    # only drop capabilities it never has. An allow entry after the module's
+    # deny list removes just this one syscall from it.
+    serviceOverrides.SystemCallFilter = [ "capset" ];
+
     # actions/setup-node and pnpm/action-setup download generic Linux
     # binaries; nix-ld (below) runs them. systemd services don't read the
     # session variables nix-ld sets, so pass them to the runner directly.
