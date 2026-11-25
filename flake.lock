@@ -192,11 +192,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1795471247,
-        "narHash": "sha256-iXVncp5B9TvLmfNXvmAn3dx+0qPbvu8HcSCQ8MschBY=",
+        "lastModified": 1795572073,
+        "narHash": "sha256-dT929g6fNintJEdsdn6TUBEVs+dMhkkzT1hhd5SkU0Y=",
         "owner": "ryoppippi",
         "repo": "nix-claude-code",
-        "rev": "9d243c899e7d1f2ced773d732842ed64a540b9b8",
+        "rev": "01e929d9f7e6328eb6c9e9e521c73a67ac8bfe60",
         "type": "github"
       },
       "original": {
@@ -366,11 +366,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1795536780,
-        "narHash": "sha256-pf1QUg2ljnIX2ltNPHYlnclLosPm8g7l0rc1wwWOIKQ=",
+        "lastModified": 1795578081,
+        "narHash": "sha256-Rt5YVAaf6UuIzii1ALohhk40riCS8/QgTEuyXCEVOx8=",
         "owner": "papersson",
         "repo": "papershop",
-        "rev": "0f045efe843ee00b4c778760a6bc5b1d60c7b8df",
+        "rev": "56b951c692897329d8438ce3ac2085a885daa39f",
         "type": "github"
       },
       "original": {
