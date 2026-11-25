@@ -65,6 +65,9 @@ in
       netcat-openbsd # nc
       diffutils # diff
       file # file
+      # scripts/ui.sh (UI review job) prefers chromium from PATH; the Chrome
+      # for Testing it downloads otherwise can't run on NixOS.
+      chromium
     ];
 
     # actions/setup-node and pnpm/action-setup download generic Linux
@@ -74,6 +77,10 @@ in
       inherit (config.environment.sessionVariables) NIX_LD NIX_LD_LIBRARY_PATH;
     };
   };
+
+  # System fonts, so the UI review's headless screenshots render text. The
+  # host had none outside home-manager, which a DynamicUser can't see.
+  fonts.packages = [ pkgs.dejavu_fonts ];
 
   # nix-ld is already enabled in default.nix; these lists merge with its
   # libraries. Enough for Node and for Playwright's downloaded Chromium
