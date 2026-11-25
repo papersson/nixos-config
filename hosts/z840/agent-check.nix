@@ -54,6 +54,10 @@ let
         exit 2
       fi
       git clone -q --no-checkout "$work/in.bundle" "$work/repo"
+      # A bundle of HEAD clones with a detached HEAD, and Nix warns when HEAD
+      # is not a branch. Point HEAD at a branch on the commit under check.
+      git -C "$work/repo" update-ref refs/heads/check "$rev"
+      git -C "$work/repo" symbolic-ref HEAD refs/heads/check
 
       peer=''${SSH_CONNECTION%% *}
       who=$(tailscale whois --json "$peer" 2>/dev/null \
@@ -62,8 +66,11 @@ let
       logger -t agent-check "peer=$peer node=$who rev=$rev size=$size"
 
       echo "z840: checking $rev"
+      # shallow=1: cloud sessions clone with --depth 1, so the bundle has no
+      # parents and Nix would fail computing revCount. The apps flake does not
+      # read revCount, lastModified or self.rev, so outputs are unchanged.
       status=0
-      timeout 40m nix flake check -L --keep-going "git+file://$work/repo?rev=$rev" || status=$?
+      timeout 40m nix flake check -L --keep-going "git+file://$work/repo?rev=$rev&shallow=1" || status=$?
       if [ "$status" -eq 0 ]; then
         echo "z840: $rev passed"
       else
