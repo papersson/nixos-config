@@ -130,6 +130,7 @@ in
     ../../modules/nixos/zfs-tank.nix
     ./cache.nix
     ./ci.nix
+    ./agent-check.nix
   ];
 
   # Standard systemd-boot — no Secure Boot / Lanzaboote on this workstation.
