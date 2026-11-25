@@ -28,3 +28,12 @@ creation_rules:
       - age:
           - *user_persson
           - *host_z840
+  # Secrets for papersson/apps' nixbot effects (services.nixbot.effects.
+  # perRepoSecretFiles): a whole Hercules-style secrets JSON, stored as a
+  # binary sops file so it decrypts to that JSON verbatim. Holds the age key
+  # the apps effects use to decrypt the apps repo's own sops secrets.
+  - path_regex: secrets/z840-nixbot-effects-apps\.json$
+    key_groups:
+      - age:
+          - *user_persson
+          - *host_z840

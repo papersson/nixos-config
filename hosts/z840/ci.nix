@@ -32,6 +32,13 @@ in
     "nixbot/github-app-key".sopsFile = ../../secrets/z840-nixbot.yaml;
     "nixbot/github-webhook-secret".sopsFile = ../../secrets/z840-nixbot.yaml;
     "nixbot/github-oauth-secret".sopsFile = ../../secrets/z840-nixbot.yaml;
+    # Secrets JSON for the apps flake's effects. Binary format: the whole
+    # file decrypts to one Hercules-style secrets JSON. Root-owned 0400 is
+    # enough, systemd reads it for LoadCredential before dropping to nixbot.
+    "nixbot/effects-apps" = {
+      sopsFile = ../../secrets/z840-nixbot-effects-apps.json;
+      format = "binary";
+    };
   };
 
   services.nixbot = {
@@ -43,6 +50,10 @@ in
     # GitHub delivers to the Funnel port; the UI stays on 443, tailnet only.
     webhookBaseUrl = "https://${domain}:8443/";
     admins = [ "github:papersson" ];
+
+    # Secret "sops": the age key that decrypts the apps repo's own sops
+    # files, for its effects (secretsMap.sops = "sops").
+    effects.perRepoSecretFiles."github:papersson/apps" = secret "effects-apps";
 
     # nixbot's own nixpkgs (unstable) builds it, not our 25.11.
     packages = {

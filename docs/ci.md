@@ -25,3 +25,7 @@ z840 is the build farm for papersson/apps: it replaces GitHub Actions' `nix flak
 ## Adding a repository
 
 Install the app on it, enable the project in the UI, and add `nixbot.toml` if it needs anything but `checks`.
+
+## Effect secrets
+
+`secrets/z840-nixbot-effects-apps.json` is papersson/apps' effects secrets file (`services.nixbot.effects.perRepoSecretFiles`), a binary sops file that decrypts to Hercules-style JSON: one secret `sops` whose `data.key` is an age private key, with `condition = true`. The apps repo's `.sops.yaml` lists that key's public half as a recipient, so an effect with `secretsMap.sops = "sops"` can decrypt the apps repo's secrets. To rotate it, generate a new key straight into the file (`age-keygen | grep AGE-SECRET-KEY | jq -cR '{sops:{data:{key:.},condition:true}}' | sops encrypt --filename-override secrets/z840-nixbot-effects-apps.json --input-type binary --output-type json /dev/stdin`), so the private key never touches disk in plaintext, then swap the public key in the apps repo and re-encrypt its secrets.
