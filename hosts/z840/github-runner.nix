@@ -1,5 +1,9 @@
 { config, inputs, pkgs, ... }:
 
+let
+  runnerPkgs = inputs.nixpkgs-runner.legacyPackages.${pkgs.stdenv.hostPlatform.system};
+in
+
 # Self-hosted GitHub Actions runner for papersson/apps, labelled `z840`, so
 # workflows can pick this box with `runs-on: [self-hosted, z840]`.
 #
@@ -27,7 +31,7 @@
     nodeRuntimes = [ "node24" ];
     # From its own nixpkgs pin, which tracks unstable: see the
     # nixpkgs-runner input in flake.nix for why and how to bump it.
-    package = inputs.nixpkgs-runner.legacyPackages.${pkgs.stdenv.hostPlatform.system}.github-runner;
+    package = runnerPkgs.github-runner;
 
     extraPackages = with pkgs; [
       git
@@ -48,6 +52,12 @@
       openssh
       which
       unzip
+      # pnpm/action-setup's self-installer runs npm before setup-node does.
+      runnerPkgs.nodejs_26
+      # GitHub's hosted image ships these and the workflows call them: gh for
+      # the Checks ratchet, python3 for .github/scripts/pr-media-embed.sh.
+      gh
+      python3
     ];
 
     # actions/setup-node and pnpm/action-setup download generic Linux
