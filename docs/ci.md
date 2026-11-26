@@ -29,3 +29,19 @@ Install the app on it, enable the project in the UI, and add `nixbot.toml` if it
 ## Effect secrets
 
 `secrets/z840-nixbot-effects-apps.json` is papersson/apps' effects secrets file (`services.nixbot.effects.perRepoSecretFiles`), a binary sops file that decrypts to Hercules-style JSON: one secret `sops` whose `data.key` is an age private key, with `condition = true`. The apps repo's `.sops.yaml` lists that key's public half as a recipient, so an effect with `secretsMap.sops = "sops"` can decrypt the apps repo's secrets. To rotate it, generate a new key straight into the file (`age-keygen | grep AGE-SECRET-KEY | jq -cR '{sops:{data:{key:.},condition:true}}' | sops encrypt --filename-override secrets/z840-nixbot-effects-apps.json --input-type binary --output-type json /dev/stdin`), so the private key never touches disk in plaintext, then swap the public key in the apps repo and re-encrypt its secrets.
+
+## Reading CI results without the UI
+
+The agent-check endpoint (`hosts/z840/agent-check.nix`, port 2222, tailnet only) also serves nixbot's results for papersson/apps, so a cloud session can read why CI failed:
+
+```
+ssh -p 2222 agent-check@z840 'log 116'                       # build summary: status, effect runs, check attrs
+ssh -p 2222 agent-check@z840 'log 116 pull_request/preview'  # an effect run's log (<kind>/<name>, as the summary lists it)
+ssh -p 2222 agent-check@z840 'log 116 lint'                  # a check attr's build log (short or full attr name)
+ssh -p 2222 agent-check@z840 'log runs'                      # the 30 latest effect runs, scheduled ones included
+ssh -p 2222 agent-check@z840 'log run 218'                   # one run's log by id (how to read a nightly run)
+```
+
+Logs print their last 2000 lines; add `--all` for the whole log. No command, or `check`, is the bundle check as before; anything else prints the usage and exits 2. Each call is logged to the journal (`journalctl -t agent-check`) with the peer's tailnet node.
+
+It is read-only: agent-check may run exactly one program as `nixbot` through sudo, `nixbot-agent-log`, which queries the `nixbot` database in read-only transactions and reads the stored logs under `/var/lib/nixbot/logs` (`<build id>/<attr>.zst`, `effects/<run id>.zst`). Paths come from ids the database returns, never from the caller. A check attr nixbot did not build itself (cached) falls back to `nix log` of its derivation. Effect logs are stored after nixbot redacts secrets, so a running effect has no log yet.
