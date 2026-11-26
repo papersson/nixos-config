@@ -11,18 +11,25 @@ in
 # hardening, no extra groups, no sudo. Workflows reach the Nix store through
 # the daemon socket like any other user.
 #
+# Two runners with the same labels, so two jobs run at once: one PR's UI
+# review no longer waits behind another's Checks ratchet or a production
+# deploy (papersson/apps measured 6 to 18 minutes of queueing with one, on
+# 26 Nov 2026). Every job keeps its own work directory, temp directory and
+# DynamicUser; the UI review runs its local stages inside Nix builds, so two
+# at once don't fight over ports.
+#
 # Registration: tokenFile holds a one-time registration token (valid 1 h),
 # written root-only by
 #   gh api -X POST repos/papersson/apps/actions/runners/registration-token \
 #     --jq .token | sudo install -m 600 /dev/stdin <tokenFile>
-# The runner keeps its own credentials in /var/lib/github-runner/apps after
-# the first start, so the token is only needed again when a change to the
-# options below forces a re-registration; then mint a fresh one first.
-{
-  services.github-runners.apps = {
+# Each runner keeps its own credentials in /var/lib/github-runner/<name>
+# after its first start, so the token is only needed again for a runner that
+# has never registered, or when a change to the options below forces a
+# re-registration; then mint a fresh one first. One token registers both.
+let
+  runner = {
     enable = true;
     url = "https://github.com/papersson/apps";
-    name = "z840";
     extraLabels = [ "z840" ];
     replace = true;
     tokenFile = "/var/lib/github-runner-registration/apps.token";
@@ -85,6 +92,12 @@ in
       inherit (config.environment.sessionVariables) NIX_LD NIX_LD_LIBRARY_PATH;
     };
   };
+in
+{
+  # The first keeps the name it registered with, so its options are unchanged
+  # and it doesn't re-register.
+  services.github-runners.apps = runner // { name = "z840"; };
+  services.github-runners.apps-2 = runner // { name = "z840-2"; };
 
   # System fonts, so the UI review's headless screenshots render text. The
   # host had none outside home-manager, which a DynamicUser can't see.
