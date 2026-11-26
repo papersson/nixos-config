@@ -81,6 +81,15 @@ in
     };
   };
 
+  # Let effects call the pkey syscalls. The nixbot module's syscall filter
+  # (@system-service) leaves them out and kills the caller with SIGSYS, and
+  # the effects run V8: Chrome for Bombadil and workerd for local stages.
+  # pkey_alloc killed every Chrome child (Bombadil: "sending on a
+  # disconnected channel") and workerd at startup (audit: sig=31
+  # syscall=330). Memory protection keys only let a process protect its own
+  # memory. systemd merges this entry into the module's allow list.
+  systemd.services.nixbot.serviceConfig.SystemCallFilter = [ "@pkey" ];
+
   # Publish the UI on the tailnet and the webhook path on the internet. The
   # serve config lives in tailscaled's state; this re-applies it at every
   # boot and rebuild, so the Nix config stays the source of truth.
