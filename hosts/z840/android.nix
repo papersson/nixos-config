@@ -152,7 +152,7 @@ let
 
       booted() { [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]; }
       wait_boot() {
-        timeout 30 adb wait-for-device || die "no emulator on adb (systemctl status android-emulator)"
+        timeout 120 adb wait-for-device || die "no emulator on adb (systemctl status android-emulator)"
         for _ in $(seq 180); do
           booted && return 0
           sleep 1
@@ -160,6 +160,12 @@ let
         die "the emulator did not finish booting in 3 minutes"
       }
       chrome() { # url
+        # On a first boot the package manager may not know Chrome yet.
+        for _ in $(seq 30); do
+          adb shell cmd package resolve-activity -c android.intent.category.LAUNCHER com.android.chrome \
+            | grep -q com.google.android.apps.chrome.Main && break
+          sleep 2
+        done
         adb shell am start -a android.intent.action.VIEW \
           -n com.android.chrome/com.google.android.apps.chrome.Main -d "$(sh_quote "$1")" > /dev/null
       }
@@ -168,6 +174,8 @@ let
         # debuggable build, or when it is the debug app.
         adb shell "echo '_ --disable-fre --no-default-browser-check --no-first-run' > /data/local/tmp/chrome-command-line"
         adb shell am set-debug-app --persistent com.android.chrome > /dev/null
+        # Granted up front, so Chrome doesn't ask for it over the first page.
+        adb shell pm grant com.android.chrome android.permission.POST_NOTIFICATIONS || true
       }
       forward() {
         adb forward tcp:${toString cdpPort} localabstract:chrome_devtools_remote > /dev/null
@@ -433,6 +441,9 @@ in
           "-avd ${avd} -port 5554"
           "-no-window -no-audio -no-boot-anim -no-snapshot -no-metrics"
           "-gpu swiftshader_indirect -accel on"
+          # The namespace can't use z840's resolver (Tailscale's 100.100.100.100,
+          # which the firewall drops), so the phone asks public ones.
+          "-dns-server 1.1.1.1,9.9.9.9"
         ];
         ExecStartPost = "${lib.getExe androidCtl} setup";
         TimeoutStartSec = 600;
