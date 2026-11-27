@@ -48,16 +48,16 @@ It is read-only: agent-check may run exactly one program as `nixbot` through sud
 
 ## The Android emulator
 
-`hosts/z840/android.nix` runs a headless Android Emulator on KVM for agents: Android 16 (API 36, the Google APIs image, so Chrome for Android and Gboard), a Pixel 9's screen (1080 x 2424 at 420 dpi), as the `android` user, always on at `CPUWeight=20`, `IOWeight=20` and `MemoryMax=8G` so CI comes first. `android-adb` is the adb server on 127.0.0.1:5037; `android-emulator` boots the AVD in `/var/lib/android` from cold each start (a new system image wipes its data), and its `ExecStartPost` (`android-ctl setup`) keeps the screen awake, skips Chrome's first-run screens and forwards 127.0.0.1:9333 to Chrome's `chrome_devtools_remote` socket.
+`hosts/z840/android.nix` runs a headless Android Emulator on KVM for agents: Android 16 (API 36, the Google APIs image, so Chrome for Android and Gboard), a Pixel 9's screen (1080 x 2424 at 420 dpi), as the `android` user, always on at `CPUWeight=20`, `IOWeight=20` and `MemoryMax=8G` so CI comes first. `android-netns` makes the network namespace `android` with a veth pair (`ve-android`, z840 10.231.0.1, phone 10.231.0.2), so the emulator's helpers (netsimd, gRPC, adb) talk over a loopback of their own rather than z840's; `android-adb` is the adb server inside it at 10.231.0.2:5037; `android-emulator` boots the AVD in `/var/lib/android` from cold each start (a new system image wipes its data), and its `ExecStartPost` (`android-ctl setup`) keeps the screen awake, skips Chrome's first-run screens and forwards 10.231.0.2:9333 to Chrome's `chrome_devtools_remote` socket.
 
 Agents reach it through agent-check (port 2222), so the tailnet policy stays as it is:
 
 ```
 ssh -p 2222 agent-check@z840 'android up'                       # wait for boot, start Chrome, status
 ssh -p 2222 agent-check@z840 'android screenshot' > phone.png   # the whole screen, keyboard included
-ssh -p 2222 -N -L 9222:127.0.0.1:9333 agent-check@z840          # Chrome's DevTools, for agent-browser --cdp
+ssh -p 2222 -N -L 9222:10.231.0.2:9333 agent-check@z840         # Chrome's DevTools, for agent-browser --cdp
 ```
 
 `android` runs `android-ctl` as `android` through one sudo rule (verbs: `status`, `up`, `screenshot`, `ui`, `tap`, `swipe`, `key`, `text` and `open` with their input on stdin, `rotate`, `reset`, `restart`); each call is journaled under `agent-check` with the peer's node. The forward to 9333 is the only one port 2222 allows (`permitopen` on every key, and `PermitOpen` in its Match block). papersson/apps wraps all of it as `scripts/z840.sh android`.
 
-The firewall (`android-out`, on OUTPUT for the `android` uid) refuses the phone z840's own loopback (Radarr and friends trust localhost) except adb and the emulator's ports, the LAN, link-local, multicast and the tailnet, except the addresses in the `android-agents` ipset: `android-agent-peers` adds every `tag:agent` peer every 20 s with a 2-minute timeout, so a phone can open a cloud session's local stage at its tailnet address. On the host: `android-ctl status` (as any user with sudo: `sudo -u android android-ctl status`), `journalctl -u android-emulator`.
+The firewall (`android-in`, in mangle PREROUTING for traffic arriving from `ve-android`, ahead of tailscaled's FORWARD rules) drops the phone's new connections to any of z840's own addresses, the LAN, link-local, multicast and the tailnet, except the addresses in the `android-agents` ipset: `android-agent-peers` adds every `tag:agent` peer every 20 s with a 2-minute timeout, so the phone can open a cloud session's local stage at its tailnet address. Everything else is NATed out. On the host: `android-ctl status` (as any user with sudo: `sudo -u android android-ctl status`), `journalctl -u android-emulator`.

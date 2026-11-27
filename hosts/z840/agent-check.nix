@@ -21,10 +21,10 @@
 #
 # And it drives the Android emulator (hosts/z840/android.nix): `android
 # <verb>` runs android-ctl as the android user, and the one TCP forward port
-# 2222 allows, to 127.0.0.1:9333, is Chrome for Android's DevTools protocol:
+# 2222 allows, to 10.231.0.2:9333, is Chrome for Android's DevTools protocol:
 #
 #   ssh -p 2222 agent-check@z840 'android screenshot' > phone.png
-#   ssh -p 2222 -N -L 9222:127.0.0.1:9333 agent-check@z840   # then --cdp
+#   ssh -p 2222 -N -L 9222:10.231.0.2:9333 agent-check@z840   # then --cdp
 #
 # Authentication on 2222 is the tailnet ACL: sshd accepts any public key for
 # exactly one user, agent-check, so each session can bring a throwaway key.
@@ -46,7 +46,7 @@ let
            log run <id>              log of effect run <id> (e.g. a scheduled one)
            add --all to a log command for the whole log, not the last 2000 lines
            android <verb> [args]     drive the Android emulator (android help)
-           -N -L 9222:127.0.0.1:9333 forward Chrome for Android's DevTools protocol'';
+           -N -L 9222:10.231.0.2:9333 forward Chrome for Android's DevTools protocol'';
 
   # Reads nixbot's database and stored logs, as user nixbot (the only user
   # that can read /var/lib/nixbot), through the sudo rule below. Read-only:
@@ -294,7 +294,7 @@ let
     [ "$1" = agent-check ] || exit 0
     case "$3" in ssh-* | ecdsa-* | sk-*) ;; *) exit 0 ;; esac
     [[ "$2" =~ ^[A-Za-z0-9+/]+=*$ ]] || exit 0
-    printf 'restrict,port-forwarding,permitopen="127.0.0.1:9333" %s %s\n' "$3" "$2"
+    printf 'restrict,port-forwarding,permitopen="10.231.0.2:9333" %s %s\n' "$3" "$2"
   '';
 in
 {
@@ -342,7 +342,7 @@ in
         ForceCommand ${lib.getExe check}
         PermitTTY no
         AllowTcpForwarding local
-        PermitOpen 127.0.0.1:9333
+        PermitOpen 10.231.0.2:9333
         PermitListen none
         AllowAgentForwarding no
         AllowStreamLocalForwarding no

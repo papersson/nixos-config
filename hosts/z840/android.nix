@@ -11,17 +11,20 @@
 #     as the `android` user: screenshots of the whole screen (keyboard and
 #     system bars included), the screen's accessibility tree, taps, swipes,
 #     keys, typing, opening a URL, rotating, resetting Chrome.
-#   - `ssh -p 2222 -N -L 9222:127.0.0.1:9333 agent-check@z840` forwards
+#   - `ssh -p 2222 -N -L 9222:10.231.0.2:9333 agent-check@z840` forwards
 #     Chrome's DevTools protocol, so agent-browser drives the phone's Chrome
-#     with `--cdp http://127.0.0.1:9222`. Port 9333 on z840 is adb's forward
-#     to Chrome's `chrome_devtools_remote` socket, and the only port 2222 lets
+#     with `--cdp http://127.0.0.1:9222`. 10.231.0.2:9333 is adb's forward to
+#     Chrome's `chrome_devtools_remote` socket, and the only place 2222 lets
 #     a session forward to.
 #
-# What the phone can reach: the internet (previews, production) and the
-# cloud sessions on the tailnet (tag:agent, so a session can open its own
-# local stage), nothing else. z840's own ports, the LAN and the rest of the
-# tailnet are refused by the firewall rules below, since the tailnet policy
-# limits tag:agent to port 2222 and a browser on z840 must not widen that.
+# The emulator and adb run in a network namespace of their own (10.231.0.2),
+# so their loopback is theirs and z840's local services (some trust any
+# local caller) are out of reach. What the phone can reach: the internet
+# (previews, production) and the cloud sessions on the tailnet (tag:agent,
+# so a session can open its own local stage), nothing else. z840 itself, the
+# LAN and the rest of the tailnet are dropped by the firewall rules below,
+# since the tailnet policy limits tag:agent to port 2222 and a browser on
+# z840 must not widen that.
 #
 # Resources: one emulator (4 cores, 4 GiB) always on, at a low CPU and IO
 # weight so CI jobs on the same box come first.
@@ -55,7 +58,12 @@ let
 
   home = "/var/lib/android";
   avd = "phone";
-  # adb's forward to Chrome's DevTools socket, on z840's loopback.
+  # The phone's network namespace and the veth pair to it.
+  netns = "android";
+  veth = "ve-android";
+  hostAddr = "10.231.0.1";
+  phoneAddr = "10.231.0.2";
+  # adb's forward to Chrome's DevTools socket, at phoneAddr.
   cdpPort = 9333;
 
   # A phone like the owner's Pixel: 1080 x 2424 at 420 dpi is 411 x 923 CSS
@@ -103,7 +111,8 @@ let
     ANDROID_SDK_ROOT = sdkRoot;
     ANDROID_USER_HOME = "${home}/.android";
     ANDROID_AVD_HOME = "${home}/avd";
-    ADB_SERVER_SOCKET = "tcp:127.0.0.1:5037";
+    # The same address inside the namespace and from z840.
+    ADB_SERVER_SOCKET = "tcp:${phoneAddr}:5037";
   };
 
   # `android-ctl <verb>`: everything an agent does with the phone. Runs as
@@ -133,7 +142,7 @@ let
              android open                        open the http(s) URL on stdin in Chrome
              android rotate portrait|landscape
              android reset                       clear Chrome's data and start it again
-             android restart                     restart the emulator (cold boot)
+             android restart                     reboot the phone
       EOF
         exit 2
       }
@@ -195,7 +204,7 @@ let
           echo "screen: $(adb shell wm size | sed -n 's/^Physical size: //p' | tr -d '\r') at $(adb shell wm density | sed -n 's/^Physical density: //p' | tr -d '\r') dpi"
           echo "keyboard: $(adb shell settings get secure default_input_method | tr -d '\r')"
           if adb shell cat /proc/net/unix | grep -q '@chrome_devtools_remote'; then
-            echo "cdp: Chrome is listening (forward z840 127.0.0.1:${toString cdpPort})"
+            echo "cdp: Chrome is listening (forward to ${phoneAddr}:${toString cdpPort})"
           else
             echo "cdp: Chrome is not running (android up)"
           fi
@@ -274,9 +283,10 @@ let
           ;;
         restart)
           [ "$#" -eq 0 ] || usage
-          # The emulator exits and systemd starts it again from a cold boot.
-          adb emu kill > /dev/null
-          echo "android: restarting; android up waits until it has booted"
+          # adb emu talks to the emulator's console, which only listens
+          # inside the namespace; a reboot of Android works from anywhere.
+          adb reboot
+          echo "android: rebooting; android up waits until it has booted"
           ;;
         *)
           usage
@@ -329,12 +339,51 @@ in
       commands = [{ command = lib.getExe androidCtl; options = [ "NOPASSWD" ]; }];
     }];
 
-    # adb's server, on loopback only. The emulator registers with it, and its
-    # key in ~/.android is the one the emulator's image trusts.
+    # The phone's own network namespace. The emulator talks to its helpers
+    # (netsimd, gRPC, adb) over loopback on ports it picks, and z840's own
+    # loopback holds services that trust any local caller, so the emulator
+    # and adb get a loopback of their own. A veth pair links the namespace
+    # (10.231.0.2) to z840 (10.231.0.1); the firewall below decides where its
+    # traffic may go, and NAT takes it out.
+    systemd.services.android-netns = {
+      description = "Network namespace for the Android emulator";
+      wantedBy = [ "multi-user.target" ];
+      before = [ "android-adb.service" "android-emulator.service" ];
+      after = [ "network.target" ];
+      path = [ pkgs.iproute2 ];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
+      script = ''
+        ip netns delete ${netns} 2>/dev/null || true
+        ip link delete ${veth} 2>/dev/null || true
+        ip netns add ${netns}
+        ip link add ${veth} type veth peer name eth0 netns ${netns}
+        ip addr add ${hostAddr}/30 dev ${veth}
+        ip link set ${veth} up
+        ip -n ${netns} link set lo up
+        ip -n ${netns} addr add ${phoneAddr}/30 dev eth0
+        ip -n ${netns} link set eth0 up
+        ip -n ${netns} route add default via ${hostAddr}
+        [ "$(cat /proc/sys/net/ipv4/ip_forward)" = 1 ] \
+          || echo "android-netns: net.ipv4.ip_forward is 0, so the phone has no internet" >&2
+      '';
+      preStop = ''
+        ip netns delete ${netns} || true
+        ip link delete ${veth} 2>/dev/null || true
+      '';
+    };
+
+    # adb's server, inside the namespace on all its interfaces (-a), so z840
+    # reaches it, and Chrome's DevTools forward, at ${phoneAddr}. The emulator
+    # registers with it, and its key in ~/.android is the one the emulator's
+    # image trusts.
     systemd.services.android-adb = {
       description = "adb server for the Android emulator";
       wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
+      bindsTo = [ "android-netns.service" ];
+      after = [ "android-netns.service" ];
       environment = env;
       # A crash loop gives up after five tries in ten minutes.
       startLimitIntervalSec = 600;
@@ -343,9 +392,10 @@ in
         User = "android";
         Group = "android";
         WorkingDirectory = home;
+        NetworkNamespacePath = "/run/netns/${netns}";
         # adb refuses a host in -L ("listening on specified hostname currently
-        # unsupported"); tcp:5037 listens on 127.0.0.1 only.
-        ExecStart = "${android.platform-tools}/bin/adb -L tcp:5037 nodaemon server";
+        # unsupported"); -a listens on every interface of the namespace.
+        ExecStart = "${android.platform-tools}/bin/adb -a -L tcp:5037 nodaemon server";
         Restart = "always";
         RestartSec = 10;
       };
@@ -355,7 +405,8 @@ in
       description = "Android emulator (headless phone for agents)";
       wantedBy = [ "multi-user.target" ];
       requires = [ "android-adb.service" ];
-      after = [ "android-adb.service" ];
+      bindsTo = [ "android-netns.service" ];
+      after = [ "android-adb.service" "android-netns.service" ];
       environment = env;
       startLimitIntervalSec = 1800;
       startLimitBurst = 5;
@@ -376,6 +427,7 @@ in
         Group = "android";
         SupplementaryGroups = [ "kvm" ];
         WorkingDirectory = home;
+        NetworkNamespacePath = "/run/netns/${netns}";
         ExecStart = lib.concatStringsSep " " [
           "${sdkRoot}/emulator/emulator"
           "-avd ${avd} -port 5554"
@@ -405,38 +457,37 @@ in
       };
     };
 
-    # The phone may go to the internet and to agent sessions, and to adb and
-    # its own console on loopback; everything else local is refused: z840's
-    # own services (Radarr and friends trust connections from localhost), the
-    # LAN, and the rest of the tailnet.
+    # Where the phone's traffic may go: the internet and agent sessions.
+    # New connections from the namespace to z840 itself (any of its
+    # addresses), the LAN, link-local, multicast and the rest of the tailnet
+    # are dropped. This is in mangle PREROUTING, before the filter table,
+    # because tailscaled's own FORWARD rules accept anything bound for
+    # tailscale0 and may sit ahead of ours.
     networking.firewall.extraPackages = [ pkgs.ipset ];
     networking.firewall.extraCommands = ''
-      ipset create -exist android-agents hash:ip timeout 120
-      iptables -w -N android-out 2>/dev/null || true
-      iptables -w -F android-out
-      iptables -w -A android-out -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
-      iptables -w -A android-out -o lo -d 127.0.0.1 -p tcp -m multiport --dports 5037,5554,5555 -j RETURN
-      iptables -w -A android-out -m set --match-set android-agents dst -j RETURN
-      iptables -w -A android-out -o lo -j REJECT
-      for net in 10.0.0.0/8 100.64.0.0/10 169.254.0.0/16 172.16.0.0/12 192.168.0.0/16 224.0.0.0/4; do
-        iptables -w -A android-out -d "$net" -j REJECT
-      done
+      # The first version filtered the android user's OUTPUT instead.
       iptables -w -D OUTPUT -m owner --uid-owner android -j android-out 2>/dev/null || true
-      iptables -w -I OUTPUT -m owner --uid-owner android -j android-out
-
-      ip6tables -w -N android-out 2>/dev/null || true
-      ip6tables -w -F android-out
-      ip6tables -w -A android-out -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
-      ip6tables -w -A android-out -o lo -j REJECT
-      for net in fc00::/7 fe80::/10 ff00::/8; do
-        ip6tables -w -A android-out -d "$net" -j REJECT
-      done
       ip6tables -w -D OUTPUT -m owner --uid-owner android -j android-out 2>/dev/null || true
-      ip6tables -w -I OUTPUT -m owner --uid-owner android -j android-out
+      iptables -w -X android-out 2>/dev/null || true
+      ip6tables -w -X android-out 2>/dev/null || true
+
+      ipset create -exist android-agents hash:ip timeout 120
+      iptables -w -t mangle -N android-in 2>/dev/null || true
+      iptables -w -t mangle -F android-in
+      iptables -w -t mangle -A android-in -m conntrack ! --ctstate NEW -j RETURN
+      iptables -w -t mangle -A android-in -m set --match-set android-agents dst -j RETURN
+      iptables -w -t mangle -A android-in -m addrtype --dst-type LOCAL -j DROP
+      for net in 10.0.0.0/8 100.64.0.0/10 169.254.0.0/16 172.16.0.0/12 192.168.0.0/16 224.0.0.0/4 240.0.0.0/4; do
+        iptables -w -t mangle -A android-in -d "$net" -j DROP
+      done
+      iptables -w -t mangle -D PREROUTING -i ${veth} -j android-in 2>/dev/null || true
+      iptables -w -t mangle -I PREROUTING -i ${veth} -j android-in
+      iptables -w -t nat -D POSTROUTING -s ${phoneAddr}/32 ! -o ${veth} -j MASQUERADE 2>/dev/null || true
+      iptables -w -t nat -A POSTROUTING -s ${phoneAddr}/32 ! -o ${veth} -j MASQUERADE
     '';
     networking.firewall.extraStopCommands = ''
-      iptables -w -D OUTPUT -m owner --uid-owner android -j android-out 2>/dev/null || true
-      ip6tables -w -D OUTPUT -m owner --uid-owner android -j android-out 2>/dev/null || true
+      iptables -w -t mangle -D PREROUTING -i ${veth} -j android-in 2>/dev/null || true
+      iptables -w -t nat -D POSTROUTING -s ${phoneAddr}/32 ! -o ${veth} -j MASQUERADE 2>/dev/null || true
     '';
   };
 }
