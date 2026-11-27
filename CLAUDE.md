@@ -7,7 +7,7 @@ Flake configuring two hosts for a single user (`patrikpersson`): the `t14` Think
 - `flake.nix` — inputs (nixpkgs 25.11, nixpkgs-unstable, home-manager release-25.11, nixos-hardware, sops-nix, lanzaboote, nixvim, matugen, zen-browser) and the `nixosConfigurations.{t14,z840}` outputs
 - `flake.lock` — pinned input revisions; commit alongside `flake.nix`
 - `hosts/t14/` — laptop host config + auto-generated `hardware-configuration.nix`
-- `hosts/z840/` — server host config + auto-generated `hardware-configuration.nix`; `cache.nix` (harmonia binary cache, tailnet only) and `ci.nix` (nixbot CI for papersson/apps, GitHub App ids in `nixbot-app.json`) — see `docs/ci.md`
+- `hosts/z840/` — server host config + auto-generated `hardware-configuration.nix`; `cache.nix` (harmonia binary cache, tailnet only) and `ci.nix` (nixbot CI for papersson/apps, GitHub App ids in `nixbot-app.json`) — see `docs/ci.md`; `android.nix` (a headless Android emulator agents drive through agent-check's port 2222, see `docs/ci.md`)
 - `pkgs/` — local package derivations applied via the overlay in `flake.nix` (currently `codex.nix`: the Codex CLI from OpenAI's official release binary, overriding `pkgs.codex`, bumped with the `codex-bump` shell function; `antigravity-cli.nix`: Google's Antigravity CLI `agy`, z840-only; and `atuin.nix`: Atuin's official static release binary, overriding `pkgs.atuin` on z840 only, bumped with `atuin-bump`).
 - `modules/nixos/` — reusable system modules (T14 hardware tunables, Hyprland desktop + greetd, declarative Wi-Fi via sops). Currently t14-only; z840 imports its bits directly from `hosts/z840/default.nix`.
 - `home/patrikpersson/` — home-manager user config and bundled assets. Two entry points:

@@ -19,10 +19,18 @@
 #
 # See `usage` below and docs/ci.md for the full syntax.
 #
+# And it drives the Android emulator (hosts/z840/android.nix): `android
+# <verb>` runs android-ctl as the android user, and the one TCP forward port
+# 2222 allows, to 127.0.0.1:9333, is Chrome for Android's DevTools protocol:
+#
+#   ssh -p 2222 agent-check@z840 'android screenshot' > phone.png
+#   ssh -p 2222 -N -L 9222:127.0.0.1:9333 agent-check@z840   # then --cdp
+#
 # Authentication on 2222 is the tailnet ACL: sshd accepts any public key for
 # exactly one user, agent-check, so each session can bring a throwaway key.
 # Everything else is locked down by the Match block: no shell (ForceCommand),
-# no TTY, no forwarding of any kind, and no other user can log in on 2222.
+# no TTY, no forwarding but the emulator's DevTools port, and no other user
+# can log in on 2222.
 # agent-check is not a nix trusted user, so it cannot change substituters or
 # import unsigned paths; it can only ask the daemon to build.
 let
@@ -36,7 +44,9 @@ let
            log <build> <name>        log of effect <kind>/<name> or check attr <name>
            log runs                  the 30 latest effect runs, with run ids
            log run <id>              log of effect run <id> (e.g. a scheduled one)
-           add --all to a log command for the whole log, not the last 2000 lines'';
+           add --all to a log command for the whole log, not the last 2000 lines
+           android <verb> [args]     drive the Android emulator (android help)
+           -N -L 9222:127.0.0.1:9333 forward Chrome for Android's DevTools protocol'';
 
   # Reads nixbot's database and stored logs, as user nixbot (the only user
   # that can read /var/lib/nixbot), through the sudo rule below. Read-only:
@@ -212,7 +222,7 @@ let
             || who="unknown"
 
       read -r -a args <<< "''${SSH_ORIGINAL_COMMAND:-}"
-      [ "''${#args[@]}" -le 4 ] || usage
+      [ "''${#args[@]}" -le 8 ] || usage
       for a in "''${args[@]}"; do
         [[ $a =~ ^[A-Za-z0-9._/+-]{1,200}$ ]] || usage
       done
@@ -224,6 +234,10 @@ let
         log)
           logger -t agent-check "peer=$peer node=$who log ''${args[*]:1}"
           exec /run/wrappers/bin/sudo -n -u nixbot ${lib.getExe logReader} "''${args[@]:1}"
+          ;;
+        android)
+          logger -t agent-check "peer=$peer node=$who android ''${args[*]:1}"
+          exec /run/wrappers/bin/sudo -n -u android ${lib.getExe config.z840.androidCtl} "''${args[@]:1}"
           ;;
         *)
           usage
@@ -272,14 +286,15 @@ let
 
   # sshd refuses an AuthorizedKeysCommand under a group-writable directory
   # such as /nix/store, so this lives in /etc as a real root-owned file.
-  # It is called as `%u %k %t` and accepts any key, but only for agent-check:
+  # It is called as `%u %k %t` and accepts any key, but only for agent-check,
+  # and lets that key forward to the emulator's DevTools port alone:
   # for every other user it prints nothing, so no key works on port 2222.
   keysScript = ''
     #!${pkgs.bash}/bin/bash
     [ "$1" = agent-check ] || exit 0
     case "$3" in ssh-* | ecdsa-* | sk-*) ;; *) exit 0 ;; esac
     [[ "$2" =~ ^[A-Za-z0-9+/]+=*$ ]] || exit 0
-    printf 'restrict %s %s\n' "$3" "$2"
+    printf 'restrict,port-forwarding,permitopen="127.0.0.1:9333" %s %s\n' "$3" "$2"
   '';
 in
 {
@@ -326,7 +341,9 @@ in
         AuthorizedKeysCommandUser nobody
         ForceCommand ${lib.getExe check}
         PermitTTY no
-        AllowTcpForwarding no
+        AllowTcpForwarding local
+        PermitOpen 127.0.0.1:9333
+        PermitListen none
         AllowAgentForwarding no
         AllowStreamLocalForwarding no
         X11Forwarding no

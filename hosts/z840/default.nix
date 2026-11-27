@@ -132,6 +132,7 @@ in
     ./ci.nix
     ./agent-check.nix
     ./github-runner.nix
+    ./android.nix
   ];
 
   # Standard systemd-boot — no Secure Boot / Lanzaboote on this workstation.
