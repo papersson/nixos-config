@@ -336,13 +336,18 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
       environment = env;
+      # A crash loop gives up after five tries in ten minutes.
+      startLimitIntervalSec = 600;
+      startLimitBurst = 5;
       serviceConfig = {
         User = "android";
         Group = "android";
         WorkingDirectory = home;
-        ExecStart = "${android.platform-tools}/bin/adb -L tcp:127.0.0.1:5037 nodaemon server";
+        # adb refuses a host in -L ("listening on specified hostname currently
+        # unsupported"); tcp:5037 listens on 127.0.0.1 only.
+        ExecStart = "${android.platform-tools}/bin/adb -L tcp:5037 nodaemon server";
         Restart = "always";
-        RestartSec = 5;
+        RestartSec = 10;
       };
     };
 
@@ -352,6 +357,8 @@ in
       requires = [ "android-adb.service" ];
       after = [ "android-adb.service" ];
       environment = env;
+      startLimitIntervalSec = 1800;
+      startLimitBurst = 5;
       path = [ pkgs.coreutils ];
       preStart = ''
         mkdir -p avd/${avd}.avd .android
@@ -378,7 +385,7 @@ in
         ExecStartPost = "${lib.getExe androidCtl} setup";
         TimeoutStartSec = 600;
         Restart = "always";
-        RestartSec = 5;
+        RestartSec = 10;
         # CI first: the emulator gets CPU and disk only when they are spare.
         CPUWeight = 20;
         IOWeight = 20;
