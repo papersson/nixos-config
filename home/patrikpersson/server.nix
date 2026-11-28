@@ -321,6 +321,10 @@
     # agent-browser's `install` downloads a Chrome-for-Testing binary that
     # won't run on NixOS (no FHS dynamic linker); point it at nix chromium.
     AGENT_BROWSER_EXECUTABLE_PATH = "${pkgs.chromium}/bin/chromium";
+    # Studio renders with Chrome's headless shell when it finds one: the same
+    # frames as full Chromium, about a fifth faster and lighter per worker.
+    # Its own download won't run on NixOS, so hand it the Nix build.
+    STUDIO_BROWSER = "${pkgs.unstable.playwright-driver.passthru.components.chromium-headless-shell}/chrome-headless-shell-linux64/chrome-headless-shell";
   };
 
   home.packages = with pkgs; [
